@@ -17,12 +17,15 @@ if(NOT SDL3_FOUND)
 endif()
 
 add_library(exd-render STATIC
-    # OpenGL backend
+    # OpenGL backend — GPU resource management
     src/backend/opengl/gl_mesh.cpp
     src/backend/opengl/gl_shader.cpp
     src/backend/opengl/gl_texture.cpp
     src/backend/opengl/gl_renderer.cpp
     src/backend/opengl/gl_particle_volume.cpp
+
+    # OpenGL backend — systems (renderer + mesh generators + scene systems)
+    src/backend/opengl/gl_systems.cpp
 
     # Null backend
     src/backend/null/null_renderer.cpp

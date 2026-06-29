@@ -1,0 +1,396 @@
+#include <exd/render/systems.hpp>
+#include <exd/render/components.hpp>
+#include <exd/render/mesh.hpp>
+#include <exd/render/draw_data.hpp>
+#include <exd/render/graphics_context.hpp>
+#include <exd/core/macros.hpp>
+#include <exd/math/mat4.hpp>
+#include <exd/math/quat.hpp>
+#include <exd/math/vec3.hpp>
+#include <assimp/Importer.hpp>
+#include <assimp/scene.h>
+#include <assimp/postprocess.h>
+#include <algorithm>
+#include <stdexcept>
+#include <cmath>
+#include <array>
+
+namespace exd::render {
+
+// ════════════════════════════════════════════════════════════════════
+// RenderSystem
+// ════════════════════════════════════════════════════════════════════
+
+math::Mat4 RenderSystem::compute_model(exd::ecs::Registry& registry, exd::ecs::Entity e) {
+    auto& xform = registry.get<Transform>(e);
+    if (registry.has<Skew>(e)) {
+        auto& sk = registry.get<Skew>(e);
+        return math::Mat4::trs(xform.position, xform.rotation, xform.scale, sk.shear);
+    }
+    return math::Mat4::trs(xform.position, xform.rotation, xform.scale);
+}
+
+RenderSystem::RenderSystem(GraphicsContext& ctx)
+    : ctx_(ctx), cubemap_(ctx), lambertian_(ctx),
+      reflective_(ctx), particles_(ctx), volume_(ctx) {}
+
+RenderSystem::~RenderSystem() = default;
+
+void RenderSystem::render_cubemap_pass(exd::ecs::Registry& registry,
+                                        const math::Mat4& view, const math::Mat4& proj) {
+    auto v = registry.view<CubeMapComponent, RenderableComponent, RenderTechnique_CubeMap>();
+    if (v.begin() == v.end()) return;
+
+    cubemap_.bind();
+    for (auto e : v) {
+        if (registry.has<Disabled>(e)) continue;
+        auto& cm = registry.get<CubeMapComponent>(e);
+        auto& r = registry.get<RenderableComponent>(e);
+        Renderable data{r.mesh, cm.texture_handle, {{"u_view", view}, {"u_proj", proj}}};
+        cubemap_.draw(data);
+    }
+    cubemap_.unbind();
+}
+
+void RenderSystem::render_opaque_pass(exd::ecs::Registry& registry,
+                                       const math::Mat4& view, const math::Mat4& proj) {
+    auto v = registry.view<Transform, RenderableComponent, RenderTechnique_Lambertian>();
+    if (v.begin() == v.end()) return;
+
+    lambertian_.bind(view, proj);
+    for (auto e : v) {
+        if (registry.has<Disabled>(e)) continue;
+        auto& r = registry.get<RenderableComponent>(e);
+        if (r.mesh == 0) continue;
+        lambertian_.draw(r.mesh, compute_model(registry, e));
+    }
+    lambertian_.unbind();
+}
+
+void RenderSystem::render_reflective_pass(exd::ecs::Registry& registry,
+                                           const math::Mat4& view, const math::Mat4& proj,
+                                           const math::Vec3& cam_pos) {
+    auto v = registry.view<Transform, RenderableComponent, RenderTechnique_Mirror>();
+    if (v.begin() == v.end()) return;
+
+    uint32_t cubemap_tex = 0;
+    for (auto e : registry.view<CubeMapComponent, RenderTechnique_CubeMap>()) {
+        cubemap_tex = registry.get<CubeMapComponent>(e).texture_handle;
+        break;
+    }
+    if (cubemap_tex == 0) return;
+
+    reflective_.bind(view, proj, cam_pos, cubemap_tex);
+    for (auto e : v) {
+        if (registry.has<Disabled>(e)) continue;
+        auto& r = registry.get<RenderableComponent>(e);
+        if (r.mesh == 0) continue;
+        reflective_.draw(r.mesh, compute_model(registry, e));
+    }
+    reflective_.unbind();
+}
+
+void RenderSystem::render_particle_pass(exd::ecs::Registry& registry,
+                                         const math::Mat4& view, const math::Mat4& proj) {
+    auto v = registry.view<ParticleCloudComponent, SimulationReference>();
+    if (v.begin() == v.end()) return;
+
+    particles_.bind();
+    for (auto e : v) {
+        if (registry.has<Disabled>(e)) continue;
+        auto& pc = registry.get<ParticleCloudComponent>(e);
+        if (pc.particle_count == 0 || pc.positions.empty()) continue;
+
+        auto sim_id = registry.get<SimulationReference>(e).simulation_entity_id;
+        const Transform* xform = nullptr;
+        for (auto db : registry.view<Transform, SimulationReference>()) {
+            if (registry.get<SimulationReference>(db).simulation_entity_id == sim_id) {
+                xform = &registry.get<Transform>(db);
+                break;
+            }
+        }
+        if (!xform) continue;
+
+        ParticleDrawData data{
+            pc.positions.data(),
+            pc.colors.empty() ? nullptr : pc.colors.data(),
+            pc.particle_count,
+            {{"u_model", math::Mat4::identity()},
+             {"u_view", view}, {"u_proj", proj}}
+        };
+        particles_.draw(data);
+    }
+    particles_.unbind();
+}
+
+void RenderSystem::render_volume_pass(exd::ecs::Registry& registry,
+                                       const math::Mat4& view, const math::Mat4& proj,
+                                       const math::Vec3& cam_pos) {
+    auto v = registry.view<VolumeFieldComponent, SimulationReference>();
+    if (v.begin() == v.end()) return;
+
+    volume_.bind();
+    for (auto e : v) {
+        if (registry.has<Disabled>(e)) continue;
+        auto& vol = registry.get<VolumeFieldComponent>(e);
+        if (!vol.interop_ready || vol.texture_handle == 0) continue;
+
+        auto sim_id = registry.get<SimulationReference>(e).simulation_entity_id;
+        exd::ecs::Entity domain_entity{};
+        for (auto db : registry.view<Transform, SimulationDomain, SimulationReference>()) {
+            if (registry.get<SimulationReference>(db).simulation_entity_id == sim_id) {
+                domain_entity = db; break;
+            }
+        }
+        if (!registry.valid(domain_entity)) continue;
+
+        auto& dom = registry.get<SimulationDomain>(domain_entity);
+        VolumeDrawData data{vol.texture_handle, 0, dom.nx, dom.ny, dom.nz,
+            {{"u_view", view}, {"u_proj", proj}, {"u_cam_pos", cam_pos}}};
+        volume_.draw(data);
+    }
+    volume_.unbind();
+}
+
+void RenderSystem::update(exd::ecs::Registry& registry,
+                           const exd::app::Window& window, float /*dt*/) {
+    // Find camera entity
+    const Transform* cam_xform = nullptr;
+    const Camera* cam = nullptr;
+    for (auto e : registry.view<Camera, Transform>()) {
+        cam = &registry.get<Camera>(e);
+        cam_xform = &registry.get<Transform>(e);
+        break;
+    }
+    if (!cam || !cam_xform) return;
+
+    int w, h; float aspect;
+    window.get_dimensions(w, h, aspect);
+
+    math::Vec3 fwd = (cam_xform->rotation * math::Vec3{0, 0, -1}).norm();
+    math::Vec3 up  = (cam_xform->rotation * math::Vec3{0, 1,  0}).norm();
+    math::Mat4 view_mat = math::Mat4::look_at(cam_xform->position, cam_xform->position + fwd, up);
+    math::Mat4 proj_mat = math::Mat4::perspective(cam->fov_y_radians, aspect,
+                                                   cam->near_plane, cam->far_plane);
+
+    render_cubemap_pass(registry, view_mat, proj_mat);
+    render_opaque_pass(registry, view_mat, proj_mat);
+    render_reflective_pass(registry, view_mat, proj_mat, cam_xform->position);
+    render_particle_pass(registry, view_mat, proj_mat);
+    render_volume_pass(registry, view_mat, proj_mat, cam_xform->position);
+}
+
+// ════════════════════════════════════════════════════════════════════
+// CameraSystem
+// ════════════════════════════════════════════════════════════════════
+
+void CameraSystem::update(exd::ecs::Registry& registry,
+                           exd::app::Window& window, float dt) {
+    using namespace exd::math;
+    using exd::app::InputMode;
+    if (window.input_mode() != InputMode::FPS) return;
+    if (!window.event_state.keyboard_state) return;
+
+    for (auto e : registry.view<CameraController, Camera, Transform>()) {
+        auto& cc = registry.get<CameraController>(e);
+        float dx = -window.event_state.mouse_rel_x;
+        float dy = -window.event_state.mouse_rel_y;
+
+        cc.yaw   += dx * cc.mouse_sensitivity;
+        cc.pitch += dy * cc.mouse_sensitivity;
+        cc.pitch = std::clamp(cc.pitch, -1.55f, 1.55f);
+        if (cc.yaw > 6.283f)  cc.yaw -= 6.283f;
+        if (cc.yaw < -6.283f) cc.yaw += 6.283f;
+
+        Vec3 world_up{0, 1, 0};
+        Quat q_yaw = Quat::from_axis_angle(world_up, cc.yaw);
+        Vec3 local_right = (q_yaw * Vec3{1, 0, 0}).norm();
+        Quat q_pitch = Quat::from_axis_angle(local_right, cc.pitch);
+        auto& xform = registry.get<Transform>(e);
+        xform.rotation = (q_pitch * q_yaw).norm();
+
+        Vec3 cam_fwd = (xform.rotation * Vec3{0, 0, -1}).norm();
+        Vec3 front = (cam_fwd - world_up * cam_fwd.dot(world_up)).norm();
+        float s = cc.move_speed * dt *
+            (window.event_state.keyboard_state[SDL_SCANCODE_LSHIFT] ? cc.sprint_mult : 1.0f);
+        Vec3 move{0, 0, 0};
+        auto& ks = window.event_state.keyboard_state;
+        if (ks[SDL_SCANCODE_W]) move = move + front * s;
+        if (ks[SDL_SCANCODE_S]) move = move - front * s;
+        if (ks[SDL_SCANCODE_A]) move = move - local_right * s;
+        if (ks[SDL_SCANCODE_D]) move = move + local_right * s;
+        if (ks[SDL_SCANCODE_Q]) move = move - world_up * s;
+        if (ks[SDL_SCANCODE_E]) move = move + world_up * s;
+        xform.position = xform.position + move;
+
+        break;
+    }
+    window.event_state.mouse_rel_x = 0;
+    window.event_state.mouse_rel_y = 0;
+}
+
+// ════════════════════════════════════════════════════════════════════
+// PrimitiveMeshSystem
+// ════════════════════════════════════════════════════════════════════
+
+void PrimitiveMeshSystem::update(exd::ecs::Registry& registry, exd::app::Window&) {
+    for (auto e : registry.view<CubePrimitive>()) {
+        auto& cube = registry.get<CubePrimitive>(e);
+        Mesh mesh = create_cube_mesh(cube.size);
+        uint32_t handle = ctx_.mesh_manager.create(mesh);
+        if (registry.has<RenderableComponent>(e))
+            registry.get<RenderableComponent>(e).mesh = handle;
+        else
+            registry.emplace<RenderableComponent>(e, handle);
+    }
+}
+
+Mesh PrimitiveMeshSystem::create_cube_mesh(float size) {
+    Mesh mesh;
+    float h = size * 0.5f;
+    struct Face { math::Vec3 n, v0, v1, v2, v3; };
+    Face faces[6] = {
+        {{1,0,0}, {h,-h,-h},{h,h,-h},{h,h,h},{h,-h,h}},
+        {{-1,0,0},{-h,-h,h},{-h,h,h},{-h,h,-h},{-h,-h,-h}},
+        {{0,1,0},{-h,h,-h},{-h,h,h},{h,h,h},{h,h,-h}},
+        {{0,-1,0},{-h,-h,h},{-h,-h,-h},{h,-h,-h},{h,-h,h}},
+        {{0,0,1},{-h,-h,h},{h,-h,h},{h,h,h},{-h,h,h}},
+        {{0,0,-1},{-h,-h,-h},{-h,h,-h},{h,h,-h},{h,-h,-h}},
+    };
+    for (auto& f : faces) {
+        uint32_t start = mesh.vertices.size();
+        mesh.vertices.push_back({f.v0, f.n});
+        mesh.vertices.push_back({f.v1, f.n});
+        mesh.vertices.push_back({f.v2, f.n});
+        mesh.vertices.push_back({f.v3, f.n});
+        mesh.indices.insert(mesh.indices.end(), {start+0,start+1,start+2,start+0,start+2,start+3});
+    }
+    return mesh;
+}
+
+// ════════════════════════════════════════════════════════════════════
+// CubeMapSystem
+// ════════════════════════════════════════════════════════════════════
+
+void CubeMapSystem::update(exd::ecs::Registry& registry, exd::app::Window&) {
+    for (auto e : registry.view<CubeMapComponent>()) {
+        auto& cm = registry.get<CubeMapComponent>(e);
+        // Cubemap texture loading is deferred to ITextureSource
+        // For now, create the mesh
+        Mesh mesh = create_cubemap_mesh();
+        uint32_t mesh_handle = ctx_.mesh_manager.create(mesh);
+        if (!registry.has<RenderableComponent>(e))
+            registry.emplace<RenderableComponent>(e, mesh_handle);
+    }
+}
+
+Mesh CubeMapSystem::create_cubemap_mesh() {
+    Mesh mesh;
+    float v[] = {
+        -1,1,-1, -1,-1,-1, 1,-1,-1, 1,-1,-1, 1,1,-1, -1,1,-1,
+        -1,-1,1, -1,-1,-1, -1,1,-1, -1,1,-1, -1,1,1, -1,-1,1,
+        1,-1,-1, 1,-1,1, 1,1,1, 1,1,1, 1,1,-1, 1,-1,-1,
+        -1,-1,1, -1,1,1, 1,1,1, 1,1,1, 1,-1,1, -1,-1,1,
+        -1,1,-1, 1,1,-1, 1,1,1, 1,1,1, -1,1,1, -1,1,-1,
+        -1,-1,-1, -1,-1,1, 1,-1,-1, 1,-1,-1, -1,-1,1, 1,-1,1,
+    };
+    for (size_t i = 0; i < 108; i += 3)
+        mesh.vertices.push_back({{v[i], v[i+1], v[i+2]}});
+    return mesh;
+}
+
+// ════════════════════════════════════════════════════════════════════
+// MeshAssetSystem
+// ════════════════════════════════════════════════════════════════════
+
+static void process_assimp_node(const aiNode* node, const aiScene* scene,
+                                 std::vector<Vertex>& verts, std::vector<uint32_t>& indices) {
+    for (unsigned i = 0; i < node->mNumMeshes; ++i) {
+        const aiMesh* m = scene->mMeshes[node->mMeshes[i]];
+        uint32_t base = verts.size();
+        for (unsigned v = 0; v < m->mNumVertices; ++v) {
+            Vertex vert{};
+            vert.position = {m->mVertices[v].x, m->mVertices[v].y, m->mVertices[v].z};
+            if (m->HasNormals())
+                vert.normal = {m->mNormals[v].x, m->mNormals[v].y, m->mNormals[v].z};
+            verts.push_back(vert);
+        }
+        for (unsigned f = 0; f < m->mNumFaces; ++f) {
+            const aiFace& face = m->mFaces[f];
+            if (face.mNumIndices == 3)
+                for (unsigned k = 0; k < 3; ++k) indices.push_back(base + face.mIndices[k]);
+            else if (face.mNumIndices > 3)
+                for (unsigned k = 1; k + 1 < face.mNumIndices; ++k) {
+                    indices.push_back(base + face.mIndices[0]);
+                    indices.push_back(base + face.mIndices[k]);
+                    indices.push_back(base + face.mIndices[k + 1]);
+                }
+        }
+    }
+    for (unsigned c = 0; c < node->mNumChildren; ++c)
+        process_assimp_node(node->mChildren[c], scene, verts, indices);
+}
+
+void MeshAssetSystem::update(exd::ecs::Registry& registry, exd::app::Window&) {
+    for (auto e : registry.view<MeshAssetComponent>()) {
+        auto& ma = registry.get<MeshAssetComponent>(e);
+        if (ma.path.empty()) continue;
+
+        Assimp::Importer importer;
+        const aiScene* scene = importer.ReadFile(ma.path,
+            aiProcess_Triangulate | aiProcess_GenSmoothNormals |
+            aiProcess_JoinIdenticalVertices | aiProcess_ImproveCacheLocality);
+        if (!scene) continue;
+
+        Mesh mesh;
+        mesh.topology = Topology::Triangles;
+        process_assimp_node(scene->mRootNode, scene, mesh.vertices, mesh.indices);
+        uint32_t handle = ctx_.mesh_manager.create(mesh);
+        registry.emplace<RenderableComponent>(e, handle);
+    }
+}
+
+// ════════════════════════════════════════════════════════════════════
+// GridSystem
+// ════════════════════════════════════════════════════════════════════
+
+void GridSystem::update(exd::ecs::Registry& registry, exd::app::Window& window) {
+    for (auto e : registry.view<GridComponent, Transform>()) {
+        if (registry.has<Disabled>(e)) continue;
+        auto& grid = registry.get<GridComponent>(e);
+        if (window.grid_visible && !registry.has<RenderableComponent>(e)) {
+            Mesh mesh;
+            mesh.topology = Topology::Lines;
+            float s = grid.spacing > 0 ? grid.spacing : 1.0f;
+            int N = 10; float extent = N * s;
+            for (int i = -N; i <= N; ++i) {
+                float c = i * s;
+                math::Vec3 col{grid.color.w, grid.color.x, grid.color.y};
+                mesh.vertices.push_back({{-extent, 0, c}, col});
+                mesh.vertices.push_back({{+extent, 0, c}, col});
+                mesh.vertices.push_back({{c, 0, -extent}, col});
+                mesh.vertices.push_back({{c, 0, +extent}, col});
+            }
+            uint32_t handle = ctx_.mesh_manager.create(mesh);
+            registry.emplace<RenderableComponent>(e, handle);
+        } else if (!window.grid_visible) {
+            registry.remove<RenderableComponent>(e);
+        }
+    }
+}
+
+// ════════════════════════════════════════════════════════════════════
+// PolygonModeSystem
+// ════════════════════════════════════════════════════════════════════
+
+void PolygonModeSystem::update(exd::ecs::Registry&, exd::app::Window& window, float) {
+    if (window.event_state.was_key_released(SDL_SCANCODE_X)) {
+        GL_CALL(glPolygonMode(GL_FRONT_AND_BACK,
+                window.wireframe ? GL_FILL : GL_LINE));
+        if (window.wireframe) glEnable(GL_CULL_FACE);
+        else glDisable(GL_CULL_FACE);
+        window.wireframe = !window.wireframe;
+    }
+}
+
+} // namespace exd::render
