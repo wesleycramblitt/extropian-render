@@ -1,8 +1,8 @@
-#include <ext/render/particle_volume.hpp>
-#include <ext/core/macros.hpp>
+#include <exd/render/particle_volume.hpp>
+#include <exd/core/macros.hpp>
 #include <cstring>
 
-namespace ext::render {
+namespace exd::render {
 
 // ── Particle Render Technique ──────────────────────────
 
@@ -141,4 +141,4 @@ void VolumeRenderTechnique::unbind() {
     GL_CALL(glUseProgram(0));
 }
 
-} // namespace ext::render
+} // namespace exd::render

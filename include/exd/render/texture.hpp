@@ -4,7 +4,7 @@
 #include <cstdint>
 #include <glad/gl.h>
 
-namespace ext::render {
+namespace exd::render {
 
 /// CPU-side texture metadata.
 struct Texture {
@@ -37,4 +37,4 @@ public:
     virtual GLint wrap_r() const { return GL_CLAMP_TO_EDGE; }
 };
 
-} // namespace ext::render
+} // namespace exd::render

@@ -5,7 +5,7 @@
 #include <glad/gl.h>
 #include <cstdint>
 
-namespace ext::render {
+namespace exd::render {
 
 class ShaderManager {
 public:
@@ -32,4 +32,4 @@ private:
     void reload_program(const std::string& name, Program& p);
 };
 
-} // namespace ext::render
+} // namespace exd::render

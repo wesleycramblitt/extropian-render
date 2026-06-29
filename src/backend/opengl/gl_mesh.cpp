@@ -1,7 +1,7 @@
-#include <ext/render/mesh_manager.hpp>
+#include <exd/render/mesh_manager.hpp>
 #include <stdexcept>
 
-namespace ext::render {
+namespace exd::render {
 
 uint32_t MeshManager::create(const Mesh& mesh) {
     uint32_t id = static_cast<uint32_t>(mesh_map_.size() + 1);
@@ -29,4 +29,4 @@ const Mesh* MeshManager::get_mesh(uint32_t handle) const {
     return (it != mesh_map_.end()) ? &it->second : nullptr;
 }
 
-} // namespace ext::render
+} // namespace exd::render

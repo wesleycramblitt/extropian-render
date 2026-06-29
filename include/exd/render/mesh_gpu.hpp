@@ -1,13 +1,13 @@
 #pragma once
 
-#include <ext/render/mesh.hpp>
-#include <ext/core/macros.hpp>
+#include <exd/render/mesh.hpp>
+#include <exd/core/macros.hpp>
 #include <glad/gl.h>
 #include <vector>
 #include <cstdint>
 #include <cstddef>
 
-namespace ext::render {
+namespace exd::render {
 
 /// GPU-side mesh: owns VAO, VBO, EBO. Constructed from a CPU Mesh.
 struct MeshGPU {
@@ -93,4 +93,4 @@ struct MeshGPU {
     }
 };
 
-} // namespace ext::render
+} // namespace exd::render

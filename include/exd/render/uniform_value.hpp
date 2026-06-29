@@ -1,11 +1,11 @@
 #pragma once
 
 #include <variant>
-#include <ext/math/vec3.hpp>
-#include <ext/math/quat.hpp>
-#include <ext/math/mat4.hpp>
+#include <exd/math/vec3.hpp>
+#include <exd/math/quat.hpp>
+#include <exd/math/mat4.hpp>
 
-namespace ext::render {
+namespace exd::render {
 
 using UniformValue = std::variant<
     int,
@@ -15,4 +15,4 @@ using UniformValue = std::variant<
     math::Mat4
 >;
 
-} // namespace ext::render
+} // namespace exd::render

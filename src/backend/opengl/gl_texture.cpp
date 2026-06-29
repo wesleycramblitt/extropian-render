@@ -1,8 +1,8 @@
-#include <ext/render/texture_manager.hpp>
-#include <ext/core/macros.hpp>
+#include <exd/render/texture_manager.hpp>
+#include <exd/core/macros.hpp>
 #include <stdexcept>
 
-namespace ext::render {
+namespace exd::render {
 
 uint32_t TextureManager::upload(ITextureSource& source) {
     GLuint id;
@@ -57,4 +57,4 @@ void TextureManager::destroy(uint32_t handle) {
     }
 }
 
-} // namespace ext::render
+} // namespace exd::render

@@ -1,10 +1,10 @@
-#include <ext/render/shader_manager.hpp>
-#include <ext/core/macros.hpp>
+#include <exd/render/shader_manager.hpp>
+#include <exd/core/macros.hpp>
 #include <fstream>
 #include <sstream>
 #include <stdexcept>
 
-namespace ext::render {
+namespace exd::render {
 
 ShaderManager::~ShaderManager() { destroy_all(); }
 
@@ -89,4 +89,4 @@ GLuint ShaderManager::link_program(GLuint vs, GLuint fs, const std::string& debu
     return p;
 }
 
-} // namespace ext::render
+} // namespace exd::render

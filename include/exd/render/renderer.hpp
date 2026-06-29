@@ -4,7 +4,7 @@
 #include <string_view>
 #include <cstdint>
 
-namespace ext::render {
+namespace exd::render {
 
 class RenderGraph;
 class Camera;
@@ -40,4 +40,4 @@ public:
     static std::unique_ptr<IRenderer> create(Backend backend);
 };
 
-} // namespace ext::render
+} // namespace exd::render

@@ -1,9 +1,9 @@
 #pragma once
 
-#include <ext/math/vec3.hpp>
-#include <ext/math/quat.hpp>
+#include <exd/math/vec3.hpp>
+#include <exd/math/quat.hpp>
 
-namespace ext::render {
+namespace exd::render {
 
 struct Vertex {
     math::Vec3 position{};
@@ -21,4 +21,4 @@ struct Mesh {
     Topology topology = Topology::Triangles;
 };
 
-} // namespace ext::render
+} // namespace exd::render

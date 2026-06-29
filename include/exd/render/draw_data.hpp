@@ -1,11 +1,11 @@
 #pragma once
 
-#include <ext/render/uniform_value.hpp>
+#include <exd/render/uniform_value.hpp>
 #include <unordered_map>
 #include <string>
 #include <cstdint>
 
-namespace ext::render {
+namespace exd::render {
 
 struct Renderable {
     uint32_t mesh_handle = 0;
@@ -27,4 +27,4 @@ struct VolumeDrawData {
     std::unordered_map<std::string, UniformValue> uniforms;
 };
 
-} // namespace ext::render
+} // namespace exd::render

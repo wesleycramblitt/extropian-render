@@ -16,7 +16,7 @@ if(NOT SDL3_FOUND)
     FetchContent_MakeAvailable(SDL3)
 endif()
 
-add_library(ext-render STATIC
+add_library(exd-render STATIC
     # OpenGL backend
     src/backend/opengl/gl_mesh.cpp
     src/backend/opengl/gl_shader.cpp
@@ -35,18 +35,18 @@ add_library(ext-render STATIC
     src/vis/particle.cpp
 )
 
-target_include_directories(ext-render PUBLIC include)
-target_include_directories(ext-render PRIVATE src)
+target_include_directories(exd-render PUBLIC include)
+target_include_directories(exd-render PRIVATE src)
 
-target_link_libraries(ext-render PUBLIC
-    ext::core
+target_link_libraries(exd-render PUBLIC
+    exd::core
     OpenGL::GL
     SDL3::SDL3
 )
 
-add_library(ext::render ALIAS ext-render)
+add_library(exd::render ALIAS exd-render)
 
 include(GNUInstallDirs)
-install(TARGETS ext-render EXPORT ext-render-targets ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR})
+install(TARGETS exd-render EXPORT exd-render-targets ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR})
 install(DIRECTORY include/ DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
-install(EXPORT ext-render-targets DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/ext-render)
+install(EXPORT exd-render-targets DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/exd-render)

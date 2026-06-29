@@ -1,7 +1,7 @@
-#include <ext/render/techniques.hpp>
-#include <ext/core/macros.hpp>
+#include <exd/render/techniques.hpp>
+#include <exd/core/macros.hpp>
 
-namespace ext::render {
+namespace exd::render {
 
 void LambertianTechnique::bind(const math::Mat4& view, const math::Mat4& proj) {
     program_ = ctx_.shader_manager.get_or_load(
@@ -100,4 +100,4 @@ void CubeMapRenderTechnique::unbind() {
     GL_CALL(glUseProgram(0));
 }
 
-} // namespace ext::render
+} // namespace exd::render

@@ -3,10 +3,10 @@
 #include <string>
 #include <unordered_map>
 #include <glad/gl.h>
-#include <ext/render/texture.hpp>
+#include <exd/render/texture.hpp>
 #include <cstdint>
 
-namespace ext::render {
+namespace exd::render {
 
 class TextureManager {
 public:
@@ -27,4 +27,4 @@ private:
     uint32_t next_handle_ = 1;
 };
 
-} // namespace ext::render
+} // namespace exd::render

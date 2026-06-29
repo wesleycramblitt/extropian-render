@@ -1,11 +1,11 @@
 #pragma once
 
-#include <ext/render/mesh.hpp>
-#include <ext/render/mesh_gpu.hpp>
+#include <exd/render/mesh.hpp>
+#include <exd/render/mesh_gpu.hpp>
 #include <unordered_map>
 #include <cstdint>
 
-namespace ext::render {
+namespace exd::render {
 
 class MeshManager {
 public:
@@ -19,4 +19,4 @@ private:
     std::unordered_map<uint32_t, MeshGPU> meshgpu_map_;
 };
 
-} // namespace ext::render
+} // namespace exd::render

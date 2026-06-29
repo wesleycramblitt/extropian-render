@@ -1,11 +1,11 @@
 #pragma once
 
-#include <ext/render/graphics_context.hpp>
-#include <ext/render/draw_data.hpp>
+#include <exd/render/graphics_context.hpp>
+#include <exd/render/draw_data.hpp>
 #include <glad/gl.h>
 #include <cstdint>
 
-namespace ext::render {
+namespace exd::render {
 
 class LambertianTechnique {
 public:
@@ -49,4 +49,4 @@ private:
     uint32_t cubemap_program_ = 0;
 };
 
-} // namespace ext::render
+} // namespace exd::render
