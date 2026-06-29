@@ -9,6 +9,19 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 find_package(exd-core REQUIRED)
 find_package(OpenGL REQUIRED)
 
+# GLAD — OpenGL loader (header-only, needs src/gl.c compiled in)
+include(FetchContent)
+FetchContent_Declare(glad
+    GIT_REPOSITORY https://github.com/Dav1dde/glad.git
+    GIT_TAG v2.0.8
+)
+FetchContent_GetProperties(glad)
+if(NOT glad_POPULATED)
+    FetchContent_Populate(glad)
+endif()
+# Note: glad must be generated for OpenGL 4.6 Core before use.
+# For now, we vendor a pre-generated glad/gl.h and glad.c from the existing project.
+
 find_package(SDL3 CONFIG QUIET)
 if(NOT SDL3_FOUND)
     include(FetchContent)
