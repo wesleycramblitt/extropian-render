@@ -1,0 +1,1 @@
+../opengl/cubemap/cubemap.frag
