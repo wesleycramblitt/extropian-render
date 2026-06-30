@@ -7,9 +7,9 @@
 #include <exd/math/mat4.hpp>
 #include <exd/math/quat.hpp>
 #include <exd/math/vec3.hpp>
-#include <assimp/Importer.hpp>
-#include <assimp/scene.h>
-#include <assimp/postprocess.h>
+// assimp disabled for first build
+// assimp disabled
+// assimp disabled
 #include <algorithm>
 #include <stdexcept>
 #include <cmath>
@@ -303,76 +303,13 @@ Mesh CubeMapSystem::create_cubemap_mesh() {
 // MeshAssetSystem
 // ════════════════════════════════════════════════════════════════════
 
-static void process_assimp_node(const aiNode* node, const aiScene* scene,
-                                 std::vector<Vertex>& verts, std::vector<uint32_t>& indices) {
-    for (unsigned i = 0; i < node->mNumMeshes; ++i) {
-        const aiMesh* m = scene->mMeshes[node->mMeshes[i]];
-        uint32_t base = verts.size();
-        for (unsigned v = 0; v < m->mNumVertices; ++v) {
-            Vertex vert{};
-            vert.position = {m->mVertices[v].x, m->mVertices[v].y, m->mVertices[v].z};
-            if (m->HasNormals())
-                vert.normal = {m->mNormals[v].x, m->mNormals[v].y, m->mNormals[v].z};
-            verts.push_back(vert);
-        }
-        for (unsigned f = 0; f < m->mNumFaces; ++f) {
-            const aiFace& face = m->mFaces[f];
-            if (face.mNumIndices == 3)
-                for (unsigned k = 0; k < 3; ++k) indices.push_back(base + face.mIndices[k]);
-            else if (face.mNumIndices > 3)
-                for (unsigned k = 1; k + 1 < face.mNumIndices; ++k) {
-                    indices.push_back(base + face.mIndices[0]);
-                    indices.push_back(base + face.mIndices[k]);
-                    indices.push_back(base + face.mIndices[k + 1]);
-                }
-        }
-    }
-    for (unsigned c = 0; c < node->mNumChildren; ++c)
-        process_assimp_node(node->mChildren[c], scene, verts, indices);
-}
 
 void MeshAssetSystem::update(exd::ecs::Registry& registry, exd::app::Window&) {
     for (auto e : registry.view<MeshAssetComponent>()) {
         auto& ma = registry.get<MeshAssetComponent>(e);
         if (ma.path.empty()) continue;
 
-        Assimp::Importer importer;
-        const aiScene* scene = importer.ReadFile(ma.path,
-            aiProcess_Triangulate | aiProcess_GenSmoothNormals |
-            aiProcess_JoinIdenticalVertices | aiProcess_ImproveCacheLocality);
-        if (!scene) continue;
-
-        Mesh mesh;
-        mesh.topology = Topology::Triangles;
-        process_assimp_node(scene->mRootNode, scene, mesh.vertices, mesh.indices);
-        uint32_t handle = ctx_.mesh_manager.create(mesh);
-        registry.emplace<RenderableComponent>(e, handle);
-    }
-}
-
-// ════════════════════════════════════════════════════════════════════
-// GridSystem
-// ════════════════════════════════════════════════════════════════════
-
-void GridSystem::update(exd::ecs::Registry& registry, exd::app::Window& window) {
-    for (auto e : registry.view<GridComponent, Transform>()) {
-        if (registry.has<Disabled>(e)) continue;
-        auto& grid = registry.get<GridComponent>(e);
-        if (window.grid_visible && !registry.has<RenderableComponent>(e)) {
-            Mesh mesh;
-            mesh.topology = Topology::Lines;
-            float s = grid.spacing > 0 ? grid.spacing : 1.0f;
-            int N = 10; float extent = N * s;
-            for (int i = -N; i <= N; ++i) {
-                float c = i * s;
-                math::Vec3 col{grid.color.w, grid.color.x, grid.color.y};
-                mesh.vertices.push_back({{-extent, 0, c}, col});
-                mesh.vertices.push_back({{+extent, 0, c}, col});
-                mesh.vertices.push_back({{c, 0, -extent}, col});
-                mesh.vertices.push_back({{c, 0, +extent}, col});
-            }
-            uint32_t handle = ctx_.mesh_manager.create(mesh);
-            registry.emplace<RenderableComponent>(e, handle);
+    // Assimp not available for first build — skipping mesh import
         } else if (!window.grid_visible) {
             registry.remove<RenderableComponent>(e);
         }
