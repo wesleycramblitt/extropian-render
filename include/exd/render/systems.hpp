@@ -1,6 +1,7 @@
 #pragma once
 
 #include <exd/ecs/registry.hpp>
+#include <exd/ecs/system.hpp>
 #include <exd/app/window.hpp>
 #include <exd/render/graphics_context.hpp>
 #include <exd/render/techniques.hpp>
@@ -13,7 +14,7 @@ namespace exd::render {
 /// @brief Main rendering orchestrator — dispatches to all render passes.
 ///
 /// Pass order: CubeMap → Opaque → Reflective → Particles → Volume
-class RenderSystem {
+class RenderSystem : public exd::ecs::ISystem {
 public:
     explicit RenderSystem(GraphicsContext& ctx);
     ~RenderSystem();
@@ -45,13 +46,13 @@ private:
 };
 
 /// Camera controller using FPS-style input.
-class CameraSystem {
+class CameraSystem : public exd::ecs::ISystem {
 public:
     void update(exd::ecs::Registry& registry, exd::app::Window& window, float dt);
 };
 
 /// Generates GPU meshes for cube primitives.
-class PrimitiveMeshSystem {
+class PrimitiveMeshSystem : public exd::ecs::ISystem {
 public:
     explicit PrimitiveMeshSystem(GraphicsContext& ctx) : ctx_(ctx) {}
     void update(exd::ecs::Registry& registry, exd::app::Window& window);
@@ -61,7 +62,7 @@ private:
 };
 
 /// Loads cubemap textures.
-class CubeMapSystem {
+class CubeMapSystem : public exd::ecs::ISystem {
 public:
     explicit CubeMapSystem(GraphicsContext& ctx) : ctx_(ctx) {}
     void update(exd::ecs::Registry& registry, exd::app::Window& window);
@@ -71,7 +72,7 @@ private:
 };
 
 /// Loads external mesh files via Assimp.
-class MeshAssetSystem {
+class MeshAssetSystem : public exd::ecs::ISystem {
 public:
     explicit MeshAssetSystem(GraphicsContext& ctx) : ctx_(ctx) {}
     void update(exd::ecs::Registry& registry, exd::app::Window& window);
@@ -80,7 +81,7 @@ private:
 };
 
 /// Renders a grid on the XZ plane.
-class GridSystem {
+class GridSystem : public exd::ecs::ISystem {
 public:
     explicit GridSystem(GraphicsContext& ctx) : ctx_(ctx) {}
     void update(exd::ecs::Registry& registry, exd::app::Window& window);
@@ -89,7 +90,7 @@ private:
 };
 
 /// Toggles wireframe/fill polygon mode.
-class PolygonModeSystem {
+class PolygonModeSystem : public exd::ecs::ISystem {
 public:
     void update(exd::ecs::Registry& registry, exd::app::Window& window, float dt);
 };
