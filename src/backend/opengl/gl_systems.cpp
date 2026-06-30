@@ -329,10 +329,10 @@ void GridSystem::update(exd::ecs::Registry& registry, exd::app::Window& window) 
             for (int i = -N; i <= N; ++i) {
                 float c = i * s;
                 math::Vec3f col{grid.color.w, grid.color.x, grid.color.y};
-                mesh.vertices.push_back({{-extent, 0, c}, col});
-                mesh.vertices.push_back({{+extent, 0, c}, col});
-                mesh.vertices.push_back({{c, 0, -extent}, col});
-                mesh.vertices.push_back({{c, 0, +extent}, col});
+                Vertex v1; v1.position = {-extent, 0.0f, c}; v1.normal = col; mesh.vertices.push_back(v1);
+                Vertex v2; v2.position = {+extent, 0.0f, c}; v2.normal = col; mesh.vertices.push_back(v2);
+                Vertex v3; v3.position = {c, 0.0f, -extent}; v3.normal = col; mesh.vertices.push_back(v3);
+                Vertex v4; v4.position = {c, 0.0f, +extent}; v4.normal = col; mesh.vertices.push_back(v4);
             }
             uint32_t handle = ctx_.mesh_manager.create(mesh);
             registry.emplace<RenderableComponent>(e, handle);
