@@ -209,11 +209,11 @@ void CameraSystem::update(exd::ecs::Registry& registry,
         auto& xform = registry.get<Transform>(e);
         xform.rotation = (q_pitch * q_yaw).norm();
 
-        Vec3f cam_fwd = (xform.rotation * Vec3{0, 0, -1}).normalized();
+        Vec3f cam_fwd = (xform.rotation * Vec3f{0.0f, 0.0f, -1.0f}).normalized();
         Vec3f front = (cam_fwd - world_up * cam_fwd.dot(world_up)).normalized();
         float s = cc.move_speed * dt *
             (window.event_state.keyboard_state[SDL_SCANCODE_LSHIFT] ? cc.sprint_mult : 1.0f);
-        Vec3 move{0, 0, 0};
+        Vec3f move{0.0f, 0.0f, 0.0f};
         auto& ks = window.event_state.keyboard_state;
         if (ks[SDL_SCANCODE_W]) move = move + front * s;
         if (ks[SDL_SCANCODE_S]) move = move - front * s;
