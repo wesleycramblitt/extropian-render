@@ -3,7 +3,9 @@
 #include <exd/render/mesh.hpp>
 #include <exd/render/draw_data.hpp>
 #include <exd/render/graphics_context.hpp>
+#include <exd/render/cubemap_texture.hpp>
 #include <exd/core/macros.hpp>
+#include <glad/gl.h>
 #include <exd/math/mat4.hpp>
 #include <exd/math/quat.hpp>
 #include <exd/math/vec3.hpp>
@@ -39,7 +41,7 @@ void RenderSystem::render_cubemap_pass(exd::ecs::Registry& registry,
         if (registry.has<Disabled>(e)) continue;
         auto& cm = registry.get<CubeMapComponent>(e);
         auto& r = registry.get<RenderableComponent>(e);
-        Renderable data{r.mesh, cm.texture_handle, {{"u_view", view}, {"u_proj", proj}}};
+        Renderable data{r.mesh, cm.gl_cubemap, {{"u_view", view}, {"u_proj", proj}}};
         cubemap_.draw(data);
     }
     cubemap_.unbind();
@@ -67,7 +69,7 @@ void RenderSystem::render_reflective_pass(exd::ecs::Registry& registry,
 
     uint32_t cubemap_tex = 0;
     for (auto e : registry.view<CubeMapComponent, RenderTechnique_CubeMap>()) {
-        cubemap_tex = registry.get<CubeMapComponent>(e).texture_handle;
+        cubemap_tex = registry.get<CubeMapComponent>(e).gl_cubemap;
         break;
     }
     if (cubemap_tex == 0) return;
@@ -265,12 +267,36 @@ Mesh PrimitiveMeshSystem::create_cube_mesh(float size) {
 void CubeMapSystem::update_impl(exd::ecs::Registry& registry) {
     for (auto e : registry.view<CubeMapComponent>()) {
         auto& cm = registry.get<CubeMapComponent>(e);
-        // Cubemap texture loading is deferred to ITextureSource
-        // For now, create the mesh
-        Mesh mesh = create_cubemap_mesh();
-        uint32_t mesh_handle = ctx_.mesh_manager.create(mesh);
-        if (!registry.has<RenderableComponent>(e))
+        // Load texture if not already loaded
+        if (cm.texture_handle == 0 && !cm.name.empty()) {
+            std::string path = "assets/cubemaps/" + cm.name + "/cross.png";
+            CubeMapTexture tex(path, 512);
+            if (tex.valid()) {
+                GLuint gl_tex;
+                glGenTextures(1, &gl_tex);
+                glBindTexture(GL_TEXTURE_CUBE_MAP, gl_tex);
+                for (int i = 0; i < 6; ++i) {
+                    auto& face = tex.get_face(i);
+                    glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGBA8,
+                                 face.width, face.height, 0, GL_RGBA, GL_UNSIGNED_BYTE,
+                                 face.data.data());
+                }
+                glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+                glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+                glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+                glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+                glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+                cm.gl_cubemap = gl_tex;
+                cm.texture_handle = 1;
+                std::printf("[CubeMap] Uploaded GL cubemap: %u\n", gl_tex);
+            }
+        }
+        // Create mesh if not already present
+        if (!registry.has<RenderableComponent>(e)) {
+            Mesh mesh = create_cubemap_mesh();
+            uint32_t mesh_handle = ctx_.mesh_manager.create(mesh);
             registry.emplace<RenderableComponent>(e, mesh_handle);
+        }
     }
 }
 

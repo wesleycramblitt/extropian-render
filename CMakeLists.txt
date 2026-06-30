@@ -45,6 +45,9 @@ add_library(exd-render STATIC
     # OpenGL backend — systems (renderer + mesh generators + scene systems)
     src/backend/opengl/gl_systems.cpp
 
+    # Cubemap texture loading
+    src/backend/opengl/gl_cubemap.cpp
+
     # Null backend
     src/backend/null/null_renderer.cpp
 
@@ -63,6 +66,8 @@ add_library(exd-render STATIC
 
 target_include_directories(exd-render PUBLIC "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>")
 target_include_directories(exd-render PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
+# stb_image for texture loading
+target_include_directories(exd-render PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/external/stb_image/include)
 
 # GLAD — vendored pre-generated OpenGL 4.6 Core loader (external/glad/)
 target_include_directories(exd-render PUBLIC "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/external/include>")

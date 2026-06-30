@@ -44,7 +44,9 @@ void ReflectiveTechnique::bind(const math::Mat4& view, const math::Mat4& proj,
     GL_CALL(glUniformMatrix4fv(u_view_, 1, GL_FALSE, view.m));
     GL_CALL(glUniformMatrix4fv(u_proj_, 1, GL_FALSE, proj.m));
     GL_CALL(glUniform3f(u_cam_pos_, cam_pos.x, cam_pos.y, cam_pos.z));
-    ctx_.texture_manager.bind(cubemap_handle);
+    // Bind cubemap directly (raw GL handle)
+    GL_CALL(glActiveTexture(GL_TEXTURE0));
+    GL_CALL(glBindTexture(GL_TEXTURE_CUBE_MAP, cubemap_handle));
     GL_CALL(glUniform1i(u_skybox_, 0));
 }
 
@@ -84,7 +86,9 @@ void CubeMapRenderTechnique::draw(const Renderable& renderable) {
 
     if (renderable.mesh_handle == 0 || renderable.texture_handle == 0) return;
 
-    ctx_.texture_manager.bind(renderable.texture_handle);
+    // Bind cubemap directly
+    GL_CALL(glActiveTexture(GL_TEXTURE0));
+    GL_CALL(glBindTexture(GL_TEXTURE_CUBE_MAP, renderable.texture_handle));
     GL_CALL(glUniform1i(u_skybox, 0));
 
     const auto* mesh = ctx_.mesh_manager.bind(renderable.mesh_handle);
