@@ -12,9 +12,9 @@ namespace exd::render {
 // ─── General-purpose ECS components for rendering ───
 
 struct Transform {
-    math::Vec3 position{0, 0, 0};
+    math::Vec3 position{0.0f, 0.0f, 0.0f};
     math::Quat rotation{1, 0, 0, 0};
-    math::Vec3 scale{1, 1, 1};
+    math::Vec3 scale{1.0f, 1.0f, 1.0f};
 };
 
 struct Camera {
@@ -33,7 +33,7 @@ struct CameraController {
 };
 
 struct Skew {
-    math::Vec3 shear{0, 0, 0};  // xy, xz, yz shear factors
+    math::Vec3 shear{0.0f, 0.0f, 0.0f};  // xy, xz, yz shear factors
 };
 
 struct RenderableComponent {
