@@ -30,7 +30,8 @@ math::Mat4 RenderSystem::compute_model(exd::ecs::Registry& registry, exd::ecs::E
     return math::Mat4::trs(xform.position, xform.rotation, xform.scale);
 }
 
-RenderSystem::RenderSystem(GraphicsContext& ctx)
+RenderSystem::RenderSystem(GraphicsContextRenderSystem::RenderSystem(GraphicsContext& ctx) ctx, exd::app::Window* win)
+    : ctx_(ctx), window_(win), cubemap_(ctx), lambertian_(ctx),
     : ctx_(ctx), cubemap_(ctx), lambertian_(ctx),
       reflective_(ctx), particles_(ctx), volume_(ctx) {}
 
@@ -165,7 +166,7 @@ void RenderSystem::update(exd::ecs::Registry& registry,
     if (!cam || !cam_xform) return;
 
     int w, h; float aspect;
-    window.get_dimensions(w, h, aspect);
+    window_->get_dimensions(w, h, aspect);
 
     math::Vec3f fwd = (cam_xform->rotation * math::Vec3f{0, 0, -1}).normalized();
     math::Vec3f up  = (cam_xform->rotation * math::Vec3f{0, 1,  0}).normalized();
@@ -188,13 +189,13 @@ void CameraSystem::update(exd::ecs::Registry& registry,
                            exd::app::Window& window, float dt) {
     using namespace exd::math;
     using exd::app::InputMode;
-    if (window.input_mode() != InputMode::FPS) return;
-    if (!window.event_state.keyboard_state) return;
+    if (window_->input_mode() != InputMode::FPS) return;
+    if (!window_->event_state.keyboard_state) return;
 
     for (auto e : registry.view<CameraController, Camera, Transform>()) {
         auto& cc = registry.get<CameraController>(e);
-        float dx = -window.event_state.mouse_rel_x;
-        float dy = -window.event_state.mouse_rel_y;
+        float dx = -window_->event_state.mouse_rel_x;
+        float dy = -window_->event_state.mouse_rel_y;
 
         cc.yaw   += dx * cc.mouse_sensitivity;
         cc.pitch += dy * cc.mouse_sensitivity;
@@ -212,9 +213,9 @@ void CameraSystem::update(exd::ecs::Registry& registry,
         Vec3f cam_fwd = (xform.rotation * Vec3f{0.0f, 0.0f, -1.0f}).normalized();
         Vec3f front = (cam_fwd - world_up * cam_fwd.dot(world_up)).normalized();
         float s = cc.move_speed * dt *
-            (window.event_state.keyboard_state[SDL_SCANCODE_LSHIFT] ? cc.sprint_mult : 1.0f);
+            (window_->event_state.keyboard_state[SDL_SCANCODE_LSHIFT] ? cc.sprint_mult : 1.0f);
         Vec3f move{0.0f, 0.0f, 0.0f};
-        auto& ks = window.event_state.keyboard_state;
+        auto& ks = window_->event_state.keyboard_state;
         if (ks[SDL_SCANCODE_W]) move = move + front * s;
         if (ks[SDL_SCANCODE_S]) move = move - front * s;
         if (ks[SDL_SCANCODE_A]) move = move - local_right * s;
@@ -225,8 +226,8 @@ void CameraSystem::update(exd::ecs::Registry& registry,
 
         break;
     }
-    window.event_state.mouse_rel_x = 0;
-    window.event_state.mouse_rel_y = 0;
+    window_->event_state.mouse_rel_x = 0;
+    window_->event_state.mouse_rel_y = 0;
 }
 
 // ════════════════════════════════════════════════════════════════════
@@ -321,7 +322,7 @@ void GridSystem::update(exd::ecs::Registry& registry, exd::app::Window& window) 
     for (auto e : registry.view<GridComponent, Transform>()) {
         if (registry.has<Disabled>(e)) continue;
         auto& grid = registry.get<GridComponent>(e);
-        if (window.grid_visible && !registry.has<RenderableComponent>(e)) {
+        if (window_->grid_visible && !registry.has<RenderableComponent>(e)) {
             Mesh mesh;
             mesh.topology = Topology::Lines;
             float s = grid.spacing > 0 ? grid.spacing : 1.0f;
@@ -336,7 +337,7 @@ void GridSystem::update(exd::ecs::Registry& registry, exd::app::Window& window) 
             }
             uint32_t handle = ctx_.mesh_manager.create(mesh);
             registry.emplace<RenderableComponent>(e, handle);
-        } else if (!window.grid_visible && registry.has<RenderableComponent>(e)) {
+        } else if (!window_->grid_visible && registry.has<RenderableComponent>(e)) {
             registry.remove<RenderableComponent>(e);
         }
     }
@@ -346,13 +347,13 @@ void GridSystem::update(exd::ecs::Registry& registry, exd::app::Window& window) 
 // PolygonModeSystem
 // ════════════════════════════════════════════════════════════════════
 
-void PolygonModeSystem::update(exd::ecs::Registry&, exd::app::Window& window, float) {
-    if (window.event_state.was_key_released(SDL_SCANCODE_X)) {
+void PolygonModeSystem::update(exd::ecs::Registryvoid PolygonModeSystem::update(exd::ecs::Registry&, exd::app::Window& window, float), double) {
+    if (window_->event_state.was_key_released(SDL_SCANCODE_X)) {
         GL_CALL(glPolygonMode(GL_FRONT_AND_BACK,
-                window.wireframe ? GL_FILL : GL_LINE));
-        if (window.wireframe) glEnable(GL_CULL_FACE);
+                window_->wireframe ? GL_FILL : GL_LINE));
+        if (window_->wireframe) glEnable(GL_CULL_FACE);
         else glDisable(GL_CULL_FACE);
-        window.wireframe = !window.wireframe;
+        window_->wireframe = !window_->wireframe;
     }
 }
 
