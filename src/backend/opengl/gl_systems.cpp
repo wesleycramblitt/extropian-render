@@ -197,7 +197,7 @@ void CameraSystem::update(exd::ecs::Registry& registry,
 // PrimitiveMeshSystem
 // ════════════════════════════════════════════════════════════════════
 
-void PrimitiveMeshSystem::update_primitives(exd::ecs::Registryvoid PrimitiveMeshSystem::update(exd::ecs::Registry& registry, exd::app::Window&) registry) {
+void PrimitiveMeshSystem::update_primitives(exd::ecs::Registry PrimitiveMeshSystem::update(exd::ecs::Registry& registry, exd::app::Window&) registry) {
     for (auto e : registry.view<CubePrimitive>()) {
         auto& cube = registry.get<CubePrimitive>(e);
         Mesh mesh = create_cube_mesh(cube.size);
@@ -236,7 +236,7 @@ Mesh PrimitiveMeshSystem::create_cube_mesh(float size) {
 // CubeMapSystem
 // ════════════════════════════════════════════════════════════════════
 
-void CubeMapSystem::update_impl(exd::ecs::Registryvoid CubeMapSystem::update(exd::ecs::Registry& registry, exd::app::Window&) registry) {
+void CubeMapSystem::update_impl(exd::ecs::Registry CubeMapSystem::update(exd::ecs::Registry& registry, exd::app::Window&) registry) {
     for (auto e : registry.view<CubeMapComponent>()) {
         auto& cm = registry.get<CubeMapComponent>(e);
         // Cubemap texture loading is deferred to ITextureSource
@@ -268,7 +268,7 @@ Mesh CubeMapSystem::create_cubemap_mesh() {
 // ════════════════════════════════════════════════════════════════════
 
 
-void MeshAssetSystem::update_impl(exd::ecs::Registryvoid MeshAssetSystem::update(exd::ecs::Registry& registry, exd::app::Window&) registry) {
+void MeshAssetSystem::update_impl(exd::ecs::Registry MeshAssetSystem::update(exd::ecs::Registry& registry, exd::app::Window&) registry) {
     for (auto e : registry.view<MeshAssetComponent>()) {
         auto& ma = registry.get<MeshAssetComponent>(e);
         if (ma.path.empty()) continue;
@@ -281,7 +281,7 @@ void MeshAssetSystem::update_impl(exd::ecs::Registryvoid MeshAssetSystem::update
 // GridSystem
 // ════════════════════════════════════════════════════════════════════
 
-void GridSystem::update(exd::ecs::Registryvoid GridSystem::update(exd::ecs::Registry& registry, exd::app::Window& window) registry, double) {
+void GridSystem::update(exd::ecs::Registry GridSystem::update(exd::ecs::Registry& registry, exd::app::Window& window) registry, double) {
     for (auto e : registry.view<GridComponent, Transform>()) {
         if (registry.has<Disabled>(e)) continue;
         auto& grid = registry.get<GridComponent>(e);
@@ -310,7 +310,7 @@ void GridSystem::update(exd::ecs::Registryvoid GridSystem::update(exd::ecs::Regi
 // PolygonModeSystem
 // ════════════════════════════════════════════════════════════════════
 
-void PolygonModeSystem::update(exd::ecs::Registryvoid PolygonModeSystem::update(exd::ecs::Registry&, exd::app::Window& window, float), double) {
+void PolygonModeSystem::update(exd::ecs::Registry PolygonModeSystem::update(exd::ecs::Registry&, exd::app::Window& window, float), double) {
     if (window_->event_state.was_key_released(SDL_SCANCODE_X)) {
         GL_CALL(glPolygonMode(GL_FRONT_AND_BACK,
                 window_->wireframe ? GL_FILL : GL_LINE));
