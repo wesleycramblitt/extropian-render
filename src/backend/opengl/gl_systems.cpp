@@ -69,7 +69,7 @@ void RenderSystem::render_opaque_pass(exd::ecs::Registry& registry,
 
 void RenderSystem::render_reflective_pass(exd::ecs::Registry& registry,
                                            const math::Mat4& view, const math::Mat4& proj,
-                                           const math::Vec3& cam_pos) {
+                                           const math::Vec3f& cam_pos) {
     auto v = registry.view<Transform, RenderableComponent, RenderTechnique_Mirror>();
     if (v.begin() == v.end()) return;
 
@@ -125,7 +125,7 @@ void RenderSystem::render_particle_pass(exd::ecs::Registry& registry,
 
 void RenderSystem::render_volume_pass(exd::ecs::Registry& registry,
                                        const math::Mat4& view, const math::Mat4& proj,
-                                       const math::Vec3& cam_pos) {
+                                       const math::Vec3f& cam_pos) {
     auto v = registry.view<VolumeFieldComponent, SimulationReference>();
     if (v.begin() == v.end()) return;
 
@@ -167,8 +167,8 @@ void RenderSystem::update(exd::ecs::Registry& registry,
     int w, h; float aspect;
     window.get_dimensions(w, h, aspect);
 
-    math::Vec3 fwd = (cam_xform->rotation * math::Vec3{0, 0, -1}).norm();
-    math::Vec3 up  = (cam_xform->rotation * math::Vec3{0, 1,  0}).norm();
+    math::Vec3f fwd = (cam_xform->rotation * math::Vec3f{0, 0, -1}).normalized();
+    math::Vec3f up  = (cam_xform->rotation * math::Vec3f{0, 1,  0}).normalized();
     math::Mat4 view_mat = math::Mat4::look_at(cam_xform->position, cam_xform->position + fwd, up);
     math::Mat4 proj_mat = math::Mat4::perspective(cam->fov_y_radians, aspect,
                                                    cam->near_plane, cam->far_plane);
@@ -204,13 +204,13 @@ void CameraSystem::update(exd::ecs::Registry& registry,
 
         Vec3 world_up{0, 1, 0};
         Quat q_yaw = Quat::from_axis_angle(world_up, cc.yaw);
-        Vec3 local_right = (q_yaw * Vec3{1, 0, 0}).norm();
+        Vec3f local_right = (q_yaw * Vec3{1, 0, 0}).normalized();
         Quat q_pitch = Quat::from_axis_angle(local_right, cc.pitch);
         auto& xform = registry.get<Transform>(e);
         xform.rotation = (q_pitch * q_yaw).norm();
 
-        Vec3 cam_fwd = (xform.rotation * Vec3{0, 0, -1}).norm();
-        Vec3 front = (cam_fwd - world_up * cam_fwd.dot(world_up)).norm();
+        Vec3f cam_fwd = (xform.rotation * Vec3{0, 0, -1}).normalized();
+        Vec3f front = (cam_fwd - world_up * cam_fwd.dot(world_up)).normalized();
         float s = cc.move_speed * dt *
             (window.event_state.keyboard_state[SDL_SCANCODE_LSHIFT] ? cc.sprint_mult : 1.0f);
         Vec3 move{0, 0, 0};
@@ -248,7 +248,7 @@ void PrimitiveMeshSystem::update(exd::ecs::Registry& registry, exd::app::Window&
 Mesh PrimitiveMeshSystem::create_cube_mesh(float size) {
     Mesh mesh;
     float h = size * 0.5f;
-    struct Face { math::Vec3 n, v0, v1, v2, v3; };
+    struct Face { math::Vec3f n, v0, v1, v2, v3; };
     Face faces[6] = {
         {{1,0,0}, {h,-h,-h},{h,h,-h},{h,h,h},{h,-h,h}},
         {{-1,0,0},{-h,-h,h},{-h,h,h},{-h,h,-h},{-h,-h,-h}},

@@ -26,7 +26,7 @@ public:
     explicit ReflectiveTechnique(GraphicsContext& ctx) : ctx_(ctx) {}
 
     void bind(const math::Mat4& view, const math::Mat4& proj,
-              const math::Vec3& cam_pos, uint32_t cubemap_handle);
+              const math::Vec3f& cam_pos, uint32_t cubemap_handle);
     void draw(uint32_t mesh_handle, const math::Mat4& model);
     void unbind();
 

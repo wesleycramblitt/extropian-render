@@ -68,7 +68,7 @@ void ParticleRenderTechnique::draw(const ParticleDrawData& data) {
                 GL_CALL(glUniform1i(loc, v));
             else if constexpr (std::is_same_v<T, float>)
                 GL_CALL(glUniform1f(loc, v));
-            else if constexpr (std::is_same_v<T, math::Vec3>)
+            else if constexpr (std::is_same_v<T, math::Vec3f>)
                 GL_CALL(glUniform3f(loc, v.x, v.y, v.z));
             else if constexpr (std::is_same_v<T, math::Mat4>)
                 GL_CALL(glUniformMatrix4fv(loc, 1, GL_FALSE, v.m));
@@ -110,7 +110,7 @@ void VolumeRenderTechnique::draw(const VolumeDrawData& data) {
                 GL_CALL(glUniform1i(loc, v));
             else if constexpr (std::is_same_v<T, float>)
                 GL_CALL(glUniform1f(loc, v));
-            else if constexpr (std::is_same_v<T, math::Vec3>)
+            else if constexpr (std::is_same_v<T, math::Vec3f>)
                 GL_CALL(glUniform3f(loc, v.x, v.y, v.z));
             else if constexpr (std::is_same_v<T, math::Mat4>)
                 GL_CALL(glUniformMatrix4fv(loc, 1, GL_FALSE, v.m));

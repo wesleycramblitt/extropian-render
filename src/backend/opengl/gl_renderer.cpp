@@ -31,7 +31,7 @@ void LambertianTechnique::unbind() { GL_CALL(glUseProgram(0)); }
 // ── Reflective ──────────────────────────────────────────
 
 void ReflectiveTechnique::bind(const math::Mat4& view, const math::Mat4& proj,
-                                const math::Vec3& cam_pos, uint32_t cubemap_handle) {
+                                const math::Vec3f& cam_pos, uint32_t cubemap_handle) {
     if (cubemap_handle == 0) return;
     program_ = ctx_.shader_manager.get_or_load(
         "reflective", "shaders/reflective/reflective.vert", "shaders/reflective/reflective.frag");
