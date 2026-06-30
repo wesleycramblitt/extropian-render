@@ -202,9 +202,9 @@ void CameraSystem::update(exd::ecs::Registry& registry,
         if (cc.yaw > 6.283f)  cc.yaw -= 6.283f;
         if (cc.yaw < -6.283f) cc.yaw += 6.283f;
 
-        Vec3 world_up{0, 1, 0};
+        Vec3f world_up{0.0f, 1.0f, 0.0f};
         Quat q_yaw = Quat::from_axis_angle(world_up, cc.yaw);
-        Vec3f local_right = (q_yaw * Vec3{1, 0, 0}).normalized();
+        Vec3f local_right = (q_yaw * Vec3f{1.0f, 0.0f, 0.0f}).normalized();
         Quat q_pitch = Quat::from_axis_angle(local_right, cc.pitch);
         auto& xform = registry.get<Transform>(e);
         xform.rotation = (q_pitch * q_yaw).norm();
