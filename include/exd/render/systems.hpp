@@ -21,11 +21,11 @@ public:
     void update(exd::ecs::Registry& registry, double dt);
 
 private:
-    void render_cubemap_pass(exd::ecs::Registry&, const math::Mat4f& view, const math::Mat4f& proj);
-    void render_opaque_pass(exd::ecs::Registry&, const math::Mat4f& view, const math::Mat4f& proj);
-    void render_reflective_pass(exd::ecs::Registry&, const math::Mat4f& view, const math::Mat4f& proj, const math::Vec3f& cam_pos);
-    void render_particle_pass(exd::ecs::Registry&, const math::Mat4f& view, const math::Mat4f& proj);
-    void render_volume_pass(exd::ecs::Registry&, const math::Mat4f& view, const math::Mat4f& proj, const math::Vec3f& cam_pos);
+    void render_cubemap_pass(exd::ecs::Registry&, const math::Mat4& view, const math::Mat4& proj);
+    void render_opaque_pass(exd::ecs::Registry&, const math::Mat4& view, const math::Mat4& proj);
+    void render_reflective_pass(exd::ecs::Registry&, const math::Mat4& view, const math::Mat4& proj, const math::Vec3f& cam_pos);
+    void render_particle_pass(exd::ecs::Registry&, const math::Mat4& view, const math::Mat4& proj);
+    void render_volume_pass(exd::ecs::Registry&, const math::Mat4& view, const math::Mat4& proj, const math::Vec3f& cam_pos);
     static math::Mat4 compute_model(exd::ecs::Registry&, exd::ecs::Entity e);
 
     GraphicsContext& ctx_;
