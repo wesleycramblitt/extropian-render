@@ -30,24 +30,6 @@ math::Mat4 RenderSystem::compute_model(exd::ecs::Registry& registry, exd::ecs::E
     return math::Mat4::trs(xform.position, xform.rotation, xform.scale);
 }
 
-RenderSystem::RenderSystem(GraphicsContext& ctx, exd::app::Window* win)
-    : ctx_(ctx), window_(win), cubemap_(ctx), lambertian_(ctx),
-      reflective_(ctx), particles_(ctx), volume_(ctx) {}
-
-void RenderSystem::render_opaque_pass(exd::ecs::Registry& registry,
-                                       const math::Mat4& view, const math::Mat4& proj) {
-    auto v = registry.view<Transform, RenderableComponent, RenderTechnique_Lambertian>();
-    if (v.begin() == v.end()) return;
-
-    lambertian_.bind(view, proj);
-    for (auto e : v) {
-        if (registry.has<Disabled>(e)) continue;
-        auto& r = registry.get<RenderableComponent>(e);
-        if (r.mesh == 0) continue;
-        lambertian_.draw(r.mesh, compute_model(registry, e));
-    }
-    lambertian_.unbind();
-}
 
 void RenderSystem::render_reflective_pass(exd::ecs::Registry& registry,
                                            const math::Mat4& view, const math::Mat4& proj,
@@ -215,7 +197,7 @@ void CameraSystem::update(exd::ecs::Registry& registry,
 // PrimitiveMeshSystem
 // ════════════════════════════════════════════════════════════════════
 
-void PrimitiveMeshSystem::update(exd::ecs::Registry& registry, exd::app::Window&) {
+void PrimitiveMeshSystem::update_primitives(exd::ecs::Registryvoid PrimitiveMeshSystem::update(exd::ecs::Registry& registry, exd::app::Window&) registry) {
     for (auto e : registry.view<CubePrimitive>()) {
         auto& cube = registry.get<CubePrimitive>(e);
         Mesh mesh = create_cube_mesh(cube.size);
@@ -254,7 +236,7 @@ Mesh PrimitiveMeshSystem::create_cube_mesh(float size) {
 // CubeMapSystem
 // ════════════════════════════════════════════════════════════════════
 
-void CubeMapSystem::update(exd::ecs::Registry& registry, exd::app::Window&) {
+void CubeMapSystem::update_impl(exd::ecs::Registryvoid CubeMapSystem::update(exd::ecs::Registry& registry, exd::app::Window&) registry) {
     for (auto e : registry.view<CubeMapComponent>()) {
         auto& cm = registry.get<CubeMapComponent>(e);
         // Cubemap texture loading is deferred to ITextureSource
@@ -286,7 +268,7 @@ Mesh CubeMapSystem::create_cubemap_mesh() {
 // ════════════════════════════════════════════════════════════════════
 
 
-void MeshAssetSystem::update(exd::ecs::Registry& registry, exd::app::Window&) {
+void MeshAssetSystem::update_impl(exd::ecs::Registryvoid MeshAssetSystem::update(exd::ecs::Registry& registry, exd::app::Window&) registry) {
     for (auto e : registry.view<MeshAssetComponent>()) {
         auto& ma = registry.get<MeshAssetComponent>(e);
         if (ma.path.empty()) continue;
@@ -299,7 +281,7 @@ void MeshAssetSystem::update(exd::ecs::Registry& registry, exd::app::Window&) {
 // GridSystem
 // ════════════════════════════════════════════════════════════════════
 
-void GridSystem::update(exd::ecs::Registry& registry, exd::app::Window& window) {
+void GridSystem::update(exd::ecs::Registryvoid GridSystem::update(exd::ecs::Registry& registry, exd::app::Window& window) registry, double) {
     for (auto e : registry.view<GridComponent, Transform>()) {
         if (registry.has<Disabled>(e)) continue;
         auto& grid = registry.get<GridComponent>(e);
