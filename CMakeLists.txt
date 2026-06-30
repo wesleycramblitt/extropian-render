@@ -24,6 +24,19 @@ if(NOT TARGET exd::app)
     )
     FetchContent_MakeAvailable(exd-app)
 endif()
+
+# Assimp for mesh import
+if(NOT TARGET assimp::assimp)
+    include(FetchContent)
+    FetchContent_Declare(assimp
+        URL https://github.com/assimp/assimp/archive/refs/tags/v5.4.3.zip
+    )
+    set(ASSIMP_BUILD_TESTS OFF CACHE BOOL "" FORCE)
+    set(ASSIMP_BUILD_ASSIMP_TOOLS OFF CACHE BOOL "" FORCE)
+    set(ASSIMP_INSTALL OFF CACHE BOOL "" FORCE)
+    FetchContent_MakeAvailable(assimp)
+endif()
+
 find_package(OpenGL REQUIRED)
 
 find_package(SDL3 CONFIG QUIET)
@@ -72,6 +85,9 @@ target_link_libraries(exd-render PUBLIC
     exd::app
     OpenGL::GL
     SDL3::SDL3
+)
+target_link_libraries(exd-render PRIVATE
+    assimp::assimp
 )
 
 add_library(exd::render ALIAS exd-render)
