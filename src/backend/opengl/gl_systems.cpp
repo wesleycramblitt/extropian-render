@@ -309,8 +309,34 @@ void MeshAssetSystem::update(exd::ecs::Registry& registry, exd::app::Window&) {
         auto& ma = registry.get<MeshAssetComponent>(e);
         if (ma.path.empty()) continue;
 
-    // Assimp not available for first build — skipping mesh import
-        } else if (!window.grid_visible) {
+        // Assimp not available for first build — skipping mesh import
+    }
+}
+
+// ════════════════════════════════════════════════════════════════════
+// GridSystem
+// ════════════════════════════════════════════════════════════════════
+
+void GridSystem::update(exd::ecs::Registry& registry, exd::app::Window& window) {
+    for (auto e : registry.view<GridComponent, Transform>()) {
+        if (registry.has<Disabled>(e)) continue;
+        auto& grid = registry.get<GridComponent>(e);
+        if (window.grid_visible && !registry.has<RenderableComponent>(e)) {
+            Mesh mesh;
+            mesh.topology = Topology::Lines;
+            float s = grid.spacing > 0 ? grid.spacing : 1.0f;
+            int N = 10; float extent = N * s;
+            for (int i = -N; i <= N; ++i) {
+                float c = i * s;
+                math::Vec3f col{grid.color.w, grid.color.x, grid.color.y};
+                mesh.vertices.push_back({{-extent, 0, c}, col});
+                mesh.vertices.push_back({{+extent, 0, c}, col});
+                mesh.vertices.push_back({{c, 0, -extent}, col});
+                mesh.vertices.push_back({{c, 0, +extent}, col});
+            }
+            uint32_t handle = ctx_.mesh_manager.create(mesh);
+            registry.emplace<RenderableComponent>(e, handle);
+        } else if (!window.grid_visible && registry.has<RenderableComponent>(e)) {
             registry.remove<RenderableComponent>(e);
         }
     }
