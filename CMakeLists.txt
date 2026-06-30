@@ -17,17 +17,6 @@ if(NOT TARGET exd::core)
     FetchContent_MakeAvailable(exd-core)
 endif()
 find_package(OpenGL REQUIRED)
-include(FetchContent)
-FetchContent_Declare(glad
-    GIT_REPOSITORY https://github.com/Dav1dde/glad.git
-    GIT_TAG v2.0.8
-)
-FetchContent_GetProperties(glad)
-if(NOT glad_POPULATED)
-    FetchContent_Populate(glad)
-endif()
-# Note: glad must be generated for OpenGL 4.6 Core before use.
-# For now, we vendor a pre-generated glad/gl.h and glad.c from the existing project.
 
 find_package(SDL3 CONFIG QUIET)
 if(NOT SDL3_FOUND)
@@ -60,6 +49,10 @@ add_library(exd-render STATIC
 
 target_include_directories(exd-render PUBLIC include)
 target_include_directories(exd-render PRIVATE src)
+
+# GLAD — vendored pre-generated OpenGL 4.6 Core loader (external/glad/)
+target_include_directories(exd-render PUBLIC external/include)
+target_sources(exd-render PRIVATE external/src/gl.c)
 
 target_link_libraries(exd-render PUBLIC
     exd::core
