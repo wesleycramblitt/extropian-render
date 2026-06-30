@@ -27,12 +27,12 @@ private:
                             const math::Mat4& view, const math::Mat4& proj);
     void render_reflective_pass(exd::ecs::Registry& registry,
                                 const math::Mat4& view, const math::Mat4& proj,
-                                const math::Vec3& cam_pos);
+                                const math::Vec3f& cam_pos);
     void render_particle_pass(exd::ecs::Registry& registry,
                               const math::Mat4& view, const math::Mat4& proj);
     void render_volume_pass(exd::ecs::Registry& registry,
                             const math::Mat4& view, const math::Mat4& proj,
-                            const math::Vec3& cam_pos);
+                            const math::Vec3f& cam_pos);
 
     static math::Mat4 compute_model(exd::ecs::Registry& registry, exd::ecs::Entity e);
 
