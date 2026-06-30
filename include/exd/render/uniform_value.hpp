@@ -10,7 +10,7 @@ namespace exd::render {
 using UniformValue = std::variant<
     int,
     float,
-    math::Vec3,
+    math::Vec3f,
     math::Quat,
     math::Mat4
 >;
