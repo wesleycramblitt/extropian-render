@@ -30,6 +30,34 @@ math::Mat4 RenderSystem::compute_model(exd::ecs::Registry& registry, exd::ecs::E
     return math::Mat4::trs(xform.position, xform.rotation, xform.scale);
 }
 
+void RenderSystem::render_cubemap_pass(exd::ecs::Registry& registry,
+                                        const math::Mat4& view, const math::Mat4& proj) {
+    auto v = registry.view<CubeMapComponent, RenderableComponent, RenderTechnique_CubeMap>();
+    if (v.begin() == v.end()) return;
+    cubemap_.bind();
+    for (auto e : v) {
+        if (registry.has<Disabled>(e)) continue;
+        auto& cm = registry.get<CubeMapComponent>(e);
+        auto& r = registry.get<RenderableComponent>(e);
+        Renderable data{r.mesh, cm.texture_handle, {{"u_view", view}, {"u_proj", proj}}};
+        cubemap_.draw(data);
+    }
+    cubemap_.unbind();
+}
+
+void RenderSystem::render_opaque_pass(exd::ecs::Registry& registry,
+                                       const math::Mat4& view, const math::Mat4& proj) {
+    auto v = registry.view<Transform, RenderableComponent, RenderTechnique_Lambertian>();
+    if (v.begin() == v.end()) return;
+    lambertian_.bind(view, proj);
+    for (auto e : v) {
+        if (registry.has<Disabled>(e)) continue;
+        auto& r = registry.get<RenderableComponent>(e);
+        if (r.mesh == 0) continue;
+        lambertian_.draw(r.mesh, compute_model(registry, e));
+    }
+    lambertian_.unbind();
+}
 
 void RenderSystem::render_reflective_pass(exd::ecs::Registry& registry,
                                            const math::Mat4& view, const math::Mat4& proj,
