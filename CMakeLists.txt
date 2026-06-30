@@ -6,10 +6,17 @@ project(extropian-render VERSION 0.1.0 LANGUAGES CXX
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-find_package(exd-core REQUIRED)
-find_package(OpenGL REQUIRED)
+# ── Dependencies: use FetchContent when not already available ──
+include(FetchContent)
 
-# GLAD — OpenGL loader (header-only, needs src/gl.c compiled in)
+if(NOT TARGET exd::core)
+    FetchContent_Declare(exd-core
+        GIT_REPOSITORY https://github.com/wesleycramblitt/extropian-core.git
+        GIT_TAG main
+    )
+    FetchContent_MakeAvailable(exd-core)
+endif()
+find_package(OpenGL REQUIRED)
 include(FetchContent)
 FetchContent_Declare(glad
     GIT_REPOSITORY https://github.com/Dav1dde/glad.git
