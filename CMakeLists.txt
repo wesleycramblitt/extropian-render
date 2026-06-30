@@ -47,11 +47,11 @@ add_library(exd-render STATIC
     src/vis/particle.cpp
 )
 
-target_include_directories(exd-render PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
+target_include_directories(exd-render PUBLIC "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>")
 target_include_directories(exd-render PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
 
 # GLAD — vendored pre-generated OpenGL 4.6 Core loader (external/glad/)
-target_include_directories(exd-render PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/external/include)
+target_include_directories(exd-render PUBLIC "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/external/include>")
 target_sources(exd-render PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/external/src/gl.c)
 
 target_link_libraries(exd-render PUBLIC
