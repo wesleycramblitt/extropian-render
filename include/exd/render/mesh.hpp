@@ -2,6 +2,8 @@
 
 #include <exd/math/vec3.hpp>
 #include <exd/math/quat.hpp>
+#include <vector>
+#include <cstdint>
 
 namespace exd::render {
 
