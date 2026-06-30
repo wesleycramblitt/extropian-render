@@ -39,6 +39,11 @@ add_library(exd-render STATIC
     # Null backend
     src/backend/null/null_renderer.cpp
 
+    # Core renderer infrastructure
+    src/renderer.cpp
+    src/camera.cpp
+    src/render_graph.cpp
+
     # Sci-vis stubs (for future)
     src/vis/isosurface.cpp
     src/vis/streamline.cpp

@@ -1,7 +1,3 @@
-#include <vector>
-#include <string>
-#include <functional>
-namespace exd::render {
-struct RenderPass { std::string name; int priority=0; };
-class RenderGraph { public: void add_pass(const RenderPass&) {} void execute() {} };
-}
+// RenderGraph implementation — mostly in the header for simplicity.
+#include <exd/render/render_graph.hpp>
+namespace exd::render { /* see render_graph.hpp */ }

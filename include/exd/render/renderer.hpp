@@ -7,7 +7,7 @@
 namespace exd::render {
 
 class RenderGraph;
-class Camera;
+struct Camera;
 
 /// @brief Abstract 3D renderer interface.
 ///
