@@ -16,6 +16,14 @@ if(NOT TARGET exd::core)
     )
     FetchContent_MakeAvailable(exd-core)
 endif()
+
+if(NOT TARGET exd::app)
+    FetchContent_Declare(exd-app
+        GIT_REPOSITORY https://github.com/wesleycramblitt/extropian-app.git
+        GIT_TAG main
+    )
+    FetchContent_MakeAvailable(exd-app)
+endif()
 find_package(OpenGL REQUIRED)
 
 find_package(SDL3 CONFIG QUIET)
@@ -61,6 +69,7 @@ target_sources(exd-render PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/external/src/gl.c)
 
 target_link_libraries(exd-render PUBLIC
     exd::core
+    exd::app
     OpenGL::GL
     SDL3::SDL3
 )
