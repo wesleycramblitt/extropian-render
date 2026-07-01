@@ -333,7 +333,11 @@ void MeshAssetSystem::update_impl(exd::ecs::Registry& registry) {
         const aiScene* scene = importer.ReadFile(ma.path,
             aiProcess_Triangulate | aiProcess_GenSmoothNormals |
             aiProcess_JoinIdenticalVertices | aiProcess_ImproveCacheLocality);
-        if (!scene) continue;
+        if (!scene) {
+            std::fprintf(stderr, "[MeshAsset] Assimp failed for %s: %s\n",
+                         ma.path.c_str(), importer.GetErrorString());
+            continue;
+        }
 
         Mesh mesh;
         mesh.topology = Topology::Triangles;
