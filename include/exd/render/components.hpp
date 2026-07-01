@@ -93,5 +93,3 @@ struct CubePrimitive {
 };
 
 } // namespace exd::render
-
-struct AssetLoaded {};

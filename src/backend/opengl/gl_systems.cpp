@@ -235,7 +235,6 @@ void PrimitiveMeshSystem::update_primitives(exd::ecs::Registry& registry) {
             registry.get<RenderableComponent>(e).mesh = handle;
         else {
             registry.emplace<RenderableComponent>(e, handle);
-        registry.emplace<AssetLoaded>(e);
             std::printf("[PrimitiveMesh] Created cube size=%.1f for entity %u\n",
                         cube.size, e.id);
         }
@@ -301,7 +300,6 @@ void CubeMapSystem::update_impl(exd::ecs::Registry& registry) {
             Mesh mesh = create_cubemap_mesh();
             uint32_t mesh_handle = ctx_.mesh_manager.create(mesh);
             registry.emplace<RenderableComponent>(e, mesh_handle);
-        registry.emplace<AssetLoaded>(e);
         }
     }
 }
@@ -327,11 +325,11 @@ Mesh CubeMapSystem::create_cubemap_mesh() {
 
 
 void MeshAssetSystem::update_impl(exd::ecs::Registry& registry) {
+    size_t count = 0;
     for (auto e : registry.view<MeshAssetComponent>()) {
-        if (registry.has<AssetLoaded>(e)) continue;
+        count++;
         auto& ma = registry.get<MeshAssetComponent>(e);
-    for (auto e : registry.view<MeshAssetComponent>()) {
-        auto& ma = registry.get<MeshAssetComponent>(e);
+        std::printf("[MeshAsset] entity=%u path=%s\n", e.id, ma.path.c_str());
         if (ma.path.empty()) continue;
 
         Assimp::Importer importer;
@@ -369,7 +367,6 @@ void MeshAssetSystem::update_impl(exd::ecs::Registry& registry) {
 
         uint32_t handle = ctx_.mesh_manager.create(mesh);
         registry.emplace<RenderableComponent>(e, handle);
-        registry.emplace<AssetLoaded>(e);
         std::printf("[MeshAsset] Loaded %s (%zu verts)\n",
                     ma.path.c_str(), mesh.vertices.size());
     }
@@ -398,7 +395,6 @@ void GridSystem::update(exd::ecs::Registry& registry, double) {
             }
             uint32_t handle = ctx_.mesh_manager.create(mesh);
             registry.emplace<RenderableComponent>(e, handle);
-        registry.emplace<AssetLoaded>(e);
         } else if (!window_->grid_visible && registry.has<RenderableComponent>(e)) {
             registry.remove<RenderableComponent>(e);
         }
