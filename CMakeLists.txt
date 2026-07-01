@@ -74,6 +74,7 @@ target_include_directories(exd-render PUBLIC "$<BUILD_INTERFACE:${CMAKE_CURRENT_
 target_sources(exd-render PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/external/src/gl.c)
 
 target_link_libraries(exd-render PUBLIC
+    assimp::assimp
     exd::core
     exd::app
     OpenGL::GL
@@ -86,3 +87,16 @@ add_library(exd::render ALIAS exd-render)
 #install(TARGETS exd-render EXPORT exd-render-targets ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR})
 #install(DIRECTORY include/ DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 #install(EXPORT exd-render-targets DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/exd-render)
+
+# Assimp for mesh file loading
+if(NOT TARGET assimp::assimp)
+    include(FetchContent)
+    FetchContent_Declare(assimp
+        GIT_REPOSITORY https://github.com/assimp/assimp.git
+        GIT_TAG v5.4.3
+    )
+    set(ASSIMP_BUILD_TESTS OFF CACHE BOOL "" FORCE)
+    set(ASSIMP_BUILD_ASSIMP_TOOLS OFF CACHE BOOL "" FORCE)
+    set(ASSIMP_INSTALL OFF CACHE BOOL "" FORCE)
+    FetchContent_MakeAvailable(assimp)
+endif()
