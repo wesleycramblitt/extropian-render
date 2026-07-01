@@ -325,8 +325,11 @@ Mesh CubeMapSystem::create_cubemap_mesh() {
 
 
 void MeshAssetSystem::update_impl(exd::ecs::Registry& registry) {
+    size_t count = 0;
     for (auto e : registry.view<MeshAssetComponent>()) {
+        count++;
         auto& ma = registry.get<MeshAssetComponent>(e);
+        std::printf("[MeshAsset] entity=%u path=%s\n", e.id, ma.path.c_str());
         if (ma.path.empty()) continue;
 
         Assimp::Importer importer;
