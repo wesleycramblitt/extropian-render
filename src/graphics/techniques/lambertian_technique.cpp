@@ -5,7 +5,7 @@ namespace exd::render {
 
 void LambertianTechnique::bind(const math::Mat4& view, const math::Mat4& proj) {
     program_ = ctx_.shader_manager.get_or_load(
-        "lambertian", "shaders/lambertian/lambertian.vert", "shaders/lambertian/lambertian.frag");
+        "lambertian", "shaders/opengl/lambertian/lambertian.vert", "shaders/opengl/lambertian/lambertian.frag");
     GL_CALL(glUseProgram(program_));
     u_view_      = glGetUniformLocation(program_, "u_view");
     u_proj_      = glGetUniformLocation(program_, "u_proj");

@@ -7,7 +7,7 @@ void ReflectiveTechnique::bind(const math::Mat4& view, const math::Mat4& proj,
                                 const math::Vec3f& cam_pos, uint32_t cubemap_handle) {
     if (cubemap_handle == 0) return;
     program_ = ctx_.shader_manager.get_or_load(
-        "reflective", "shaders/reflective/reflective.vert", "shaders/reflective/reflective.frag");
+        "reflective", "shaders/opengl/reflective/reflective.vert", "shaders/opengl/reflective/reflective.frag");
     GL_CALL(glUseProgram(program_));
     u_view_    = glGetUniformLocation(program_, "u_view");
     u_proj_    = glGetUniformLocation(program_, "u_proj");

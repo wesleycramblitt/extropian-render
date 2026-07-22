@@ -44,8 +44,8 @@ void ParticleRenderTechnique::upload(GLState& s, const float* positions, const f
 void ParticleRenderTechnique::bind() {
     program_ = ctx_.shader_manager.get_or_load(
         "particle_points",
-        "shaders/particle/particle.vert",
-        "shaders/particle/particle.frag");
+        "shaders/opengl/particle/particle.vert",
+        "shaders/opengl/particle/particle.frag");
     GL_CALL(glUseProgram(program_));
     GL_CALL(glEnable(GL_PROGRAM_POINT_SIZE));
 }

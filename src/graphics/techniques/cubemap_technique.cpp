@@ -6,7 +6,7 @@ namespace exd::render {
 
 void CubeMapRenderTechnique::bind() {
     cubemap_program_ = ctx_.shader_manager.get_or_load(
-        "cubemap", "shaders/cubemap/cubemap.vert", "shaders/cubemap/cubemap.frag");
+        "cubemap", "shaders/opengl/cubemap/cubemap.vert", "shaders/opengl/cubemap/cubemap.frag");
     GL_CALL(glDepthFunc(GL_LEQUAL));
     GL_CALL(glDepthMask(GL_FALSE));
     GL_CALL(glDisable(GL_CULL_FACE));

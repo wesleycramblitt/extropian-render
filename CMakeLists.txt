@@ -9,6 +9,10 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 # ── Dependencies: use FetchContent when not already available ──
 include(FetchContent)
 
+# Some dependencies (doctest) use cmake_minimum_required(VERSION 3.0)
+# which is rejected by CMake >= 4.0 unless we set this policy.
+set(CMAKE_POLICY_VERSION_MINIMUM 3.5 CACHE STRING "")
+
 if(NOT TARGET exd::core)
     FetchContent_Declare(exd-core
         GIT_REPOSITORY https://github.com/wesleycramblitt/extropian-core.git
@@ -59,6 +63,10 @@ target_link_libraries(exd-render PUBLIC
 )
 
 add_library(exd::render ALIAS exd-render)
+
+# ── Tests ─────────────────────────────────────────
+include(CTest)
+add_subdirectory(tests)
 
 #include(GNUInstallDirs)
 #install(TARGETS exd-render EXPORT exd-render-targets ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR})

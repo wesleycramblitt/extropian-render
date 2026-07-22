@@ -7,8 +7,8 @@ namespace exd::render {
 void VolumeRenderTechnique::bind() {
     program_ = ctx_.shader_manager.get_or_load(
         "volume_ray",
-        "shaders/volume/ray_march.vert",
-        "shaders/volume/ray_march.frag");
+        "shaders/opengl/volume/ray_march.vert",
+        "shaders/opengl/volume/ray_march.frag");
     GL_CALL(glUseProgram(program_));
 }
 
