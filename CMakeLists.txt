@@ -34,35 +34,12 @@ if(NOT SDL3_FOUND)
     FetchContent_MakeAvailable(SDL3)
 endif()
 
-add_library(exd-render STATIC
-    # OpenGL backend — GPU resource management
-    src/backend/opengl/gl_mesh.cpp
-    src/backend/opengl/gl_shader.cpp
-    src/backend/opengl/gl_texture.cpp
-    src/backend/opengl/gl_renderer.cpp
-    src/backend/opengl/gl_particle_volume.cpp
+add_library(exd-render STATIC)
 
-    # OpenGL backend — systems (renderer + mesh generators + scene systems)
-    src/backend/opengl/gl_systems.cpp
-
-    # Cubemap texture loading
-    src/backend/opengl/gl_cubemap.cpp
-
-    # Null backend
-    src/backend/null/null_renderer.cpp
-
-    # Core renderer infrastructure
-    src/renderer.cpp
-    src/camera.cpp
-    src/render_graph.cpp
-
-    # Sci-vis stubs (for future)
-    src/vis/isosurface.cpp
-    src/vis/streamline.cpp
-    src/vis/volume.cpp
-    src/vis/slice.cpp
-    src/vis/particle.cpp
-)
+add_subdirectory(src)
+add_subdirectory(src/systems)
+add_subdirectory(src/backends)
+add_subdirectory(src/graphics)
 
 target_include_directories(exd-render PUBLIC "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>")
 target_include_directories(exd-render PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
@@ -101,4 +78,8 @@ if(NOT TARGET assimp::assimp)
     set(ASSIMP_BUILD_ZLIB ON CACHE BOOL "" FORCE)
     set(ASSIMP_NO_EXPORT ON CACHE BOOL "" FORCE)
     FetchContent_MakeAvailable(assimp)
+    # Suppress GCC 16 warning-as-error in MS3DLoader (pre-existing assimp v5.4.3 issue)
+    if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL "16")
+        target_compile_options(assimp PRIVATE -Wno-error=unused-but-set-variable)
+    endif()
 endif()
