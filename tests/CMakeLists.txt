@@ -28,6 +28,7 @@ target_compile_features(test-render-unit PRIVATE cxx_std_23)
 add_executable(test-render-gl
     test_main.cpp
     test_techniques.cpp
+    test_window.cpp
 )
 target_include_directories(test-render-gl PRIVATE ${DOCTEST_DIR})
 target_link_libraries(test-render-gl PRIVATE exd::render)
