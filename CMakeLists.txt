@@ -79,20 +79,6 @@ include(CTest)
 add_subdirectory(tests)
 
 # ── Demo ──────────────────────────────────────────
-# Pull extropian-assets via FetchContent so the demo always
-# has the latest cubemaps and meshes available.
-if(NOT TARGET exd-assets)
-    FetchContent_Declare(exd-assets
-        GIT_REPOSITORY https://github.com/wesleycramblitt/extropian-assets.git
-        GIT_TAG main
-    )
-    FetchContent_GetProperties(exd-assets)
-    if(NOT exd-assets_POPULATED)
-        FetchContent_Populate(exd-assets)
-    endif()
-    # Not a CMake project — just a directory of assets.
-    set(EXD_ASSETS_DIR "${exd-assets_SOURCE_DIR}" CACHE INTERNAL "")
-endif()
 add_subdirectory(demo)
 
 #include(GNUInstallDirs)
