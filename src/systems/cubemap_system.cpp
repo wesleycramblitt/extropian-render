@@ -15,8 +15,10 @@ void CubeMapSystem::update_impl(exd::ecs::Registry& registry) {
     for (auto e : registry.view<CubeMapComponent>()) {
         auto& cm = registry.get<CubeMapComponent>(e);
         // Load texture if not already loaded
-        if (cm.texture_handle == 0 && !cm.name.empty()) {
-            std::string path = "assets/cubemaps/" + cm.name + "/cross.png";
+        if (cm.texture_handle == 0 && (!cm.name.empty() || !cm.custom_path.empty())) {
+            std::string path = cm.custom_path.empty()
+                ? "assets/cubemaps/" + cm.name + "/cross.png"
+                : cm.custom_path;
             CubeMapTexture tex(path, 512);
             if (tex.valid()) {
                 GLuint gl_tex;

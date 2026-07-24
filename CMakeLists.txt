@@ -38,6 +38,16 @@ if(NOT SDL3_FOUND)
     FetchContent_MakeAvailable(SDL3)
 endif()
 
+# nlohmann/json — header-only JSON parser for environment configs
+if(NOT TARGET nlohmann_json::nlohmann_json)
+    include(FetchContent)
+    FetchContent_Declare(json
+        GIT_REPOSITORY https://github.com/nlohmann/json.git
+        GIT_TAG v3.11.3
+    )
+    FetchContent_MakeAvailable(json)
+endif()
+
 add_library(exd-render STATIC)
 
 add_subdirectory(src)
@@ -57,6 +67,7 @@ target_sources(exd-render PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/external/src/gl.c)
 
 target_link_libraries(exd-render PUBLIC
     assimp::assimp
+    nlohmann_json::nlohmann_json
     exd::core
     exd::app
     OpenGL::GL

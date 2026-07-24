@@ -31,11 +31,13 @@
 #include <exd/render/components/selected.hpp>
 #include <exd/render/components/hovered.hpp>
 #include <exd/render/components/render_technique_tags.hpp>
+#include <exd/render/components/environment.hpp>
 
 // ── Systems ────────────────────────────────────────────────
 #include <exd/render/systems/hierarchy_system.hpp>
 #include <exd/render/systems/render_system.hpp>
 #include <exd/render/systems/camera_system.hpp>
+#include <exd/render/systems/environment_system.hpp>
 
 // ── Interaction ────────────────────────────────────────────
 #include <exd/render/interaction/picker.hpp>

@@ -26,7 +26,7 @@ public:
 
 private:
     void render_cubemap_pass(exd::ecs::Registry&, const math::Mat4& view, const math::Mat4& proj);
-    void render_opaque_pass(exd::ecs::Registry&, const math::Mat4& view, const math::Mat4& proj);
+    void render_opaque_pass(exd::ecs::Registry&, const math::Mat4& view, const math::Mat4& proj, const math::Vec3f& cam_pos);
     void render_reflective_pass(exd::ecs::Registry&, const math::Mat4& view, const math::Mat4& proj, const math::Vec3f& cam_pos);
     void render_particle_pass(exd::ecs::Registry&, const math::Mat4& view, const math::Mat4& proj);
     void render_volume_pass(exd::ecs::Registry&, const math::Mat4& view, const math::Mat4& proj, const math::Vec3f& cam_pos);

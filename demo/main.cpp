@@ -46,13 +46,14 @@
 #include <SDL3/SDL.h>
 #include <glad/gl.h>
 #include <cstdio>
-#include <string>
 
 using namespace exd;
 
 int main() {
-    app::Window window;
-    if (!window.sdl_window || !window.gl_context) {
+    app::WindowDesc desc;
+    desc.title = "extropian-render demo";
+    app::Window window(desc);
+    if (!window.is_valid()) {
         std::fprintf(stderr, "FATAL: window creation failed\n");
         return 1;
     }
@@ -92,7 +93,7 @@ int main() {
     reg.emplace<render::CubePrimitive>(center, 2.5f);
     reg.emplace<render::RenderTechnique_Lambertian>(center);
 
-    // Generate shape meshes via extropian-geometry (types unified via core)
+    // Generate shape meshes via extropian-geometry
     using namespace exd::geometry;
     uint32_t sphere_mesh = ctx.mesh_manager.create(
         generate_sphere_mesh(SphereGeometry{.radius=0.8f, .latitudeSegments=16, .longitudeSegments=32}));
@@ -101,50 +102,27 @@ int main() {
     uint32_t cone_mesh = ctx.mesh_manager.create(
         generate_cone_mesh(ConeGeometry{.radius=0.8f, .height=2.0f, .slices=32, .capped=true}));
 
-    // Spheres
-    auto add_sphere = [&](float x, float z, float r) {
-        auto e = reg.create("Sphere");
-        reg.emplace<render::Transform>(e, math::Vec3f{x, 1.5f, z});
-        reg.emplace<render::RenderableComponent>(e, sphere_mesh);
+    auto add_shape = [&](const char* name, float x, float z, uint32_t mesh, float y=1.5f) {
+        auto e = reg.create(name);
+        reg.emplace<render::Transform>(e, math::Vec3f{x, y, z});
+        reg.emplace<render::RenderableComponent>(e, mesh);
         reg.emplace<render::RenderTechnique_Lambertian>(e);
     };
-    add_sphere( 4,  4, 0.8f);
-    add_sphere(-4,  4, 0.6f);
-    add_sphere( 4, -4, 0.7f);
-    add_sphere(-4, -4, 1.0f);
+    add_shape("Sphere",  4,  4, sphere_mesh);
+    add_shape("Sphere", -4,  4, sphere_mesh);
+    add_shape("Sphere",  4, -4, sphere_mesh);
+    add_shape("Sphere", -4, -4, sphere_mesh);
+    add_shape("Cylinder", -3, 0, cylinder_mesh);
+    add_shape("Cylinder", -1, 0, cylinder_mesh);
+    add_shape("Cylinder",  1, 0, cylinder_mesh);
+    add_shape("Cone",  3, 0, cone_mesh, 1.0f);
+    add_shape("Cone", -5,-5, cone_mesh, 1.0f);
 
-    // Cylinders
-    auto add_cylinder = [&](float x, float z) {
-        auto e = reg.create("Cylinder");
-        reg.emplace<render::Transform>(e, math::Vec3f{x, 1.5f, z});
-        reg.emplace<render::RenderableComponent>(e, cylinder_mesh);
-        reg.emplace<render::RenderTechnique_Lambertian>(e);
-    };
-    add_cylinder(-3, 0);
-    add_cylinder(-1, 0);
-    add_cylinder( 1, 0);
-
-    // Cones
-    auto add_cone = [&](float x, float z) {
-        auto e = reg.create("Cone");
-        reg.emplace<render::Transform>(e, math::Vec3f{x, 1.0f, z});
-        reg.emplace<render::RenderableComponent>(e, cone_mesh);
-        reg.emplace<render::RenderTechnique_Lambertian>(e);
-    };
-    add_cone( 3, 0);
-    add_cone(-5,-5);
-
-    // Reflective cube (mirror technique — reflects skybox)
+    // Reflective cube
     auto mirror = reg.create("Mirror");
     reg.emplace<render::Transform>(mirror, math::Vec3f{0, 3.0f, 3});
     reg.emplace<render::CubePrimitive>(mirror, 1.5f);
     reg.emplace<render::RenderTechnique_Mirror>(mirror);
-
-    // Floating reflective sphere
-    auto mir_sph = reg.create("MirrorSphere");
-    reg.emplace<render::Transform>(mir_sph, math::Vec3f{5, 3.0f, 5});
-    reg.emplace<render::RenderableComponent>(mir_sph, sphere_mesh);
-    reg.emplace<render::RenderTechnique_Mirror>(mir_sph);
 
     // Skybox
     auto sky = reg.create("Skybox");
@@ -159,48 +137,40 @@ int main() {
 
     auto print_help = []() {
         std::printf("\n=== Demo Controls ===\n");
-        std::printf("  Tab        toggle FPS camera / UI mode\n");
-        std::printf("  FPS mode:  WASD fly, mouse look\n");
-        std::printf("  UI mode:   cursor visible, click to select\n");
-        std::printf("  1/2/3      Translate / Rotate / Scale gizmo (both modes)\n");
-        std::printf("  Click      select entity (shift+click = multi-select)\n");
-        std::printf("  Drag gizmo transform selection\n");
-        std::printf("  G          toggle reference grid\n");
-        std::printf("  X          toggle wireframe\n");
-        std::printf("  H          print this help\n");
-        std::printf("  Esc        quit\n\n");
+        std::printf("  Tab        toggle FPS/UI mode\n");
+        std::printf("  FPS:       WASD fly, mouse look\n");
+        std::printf("  UI:        click to select, 1/2/3 = T/R/S gizmo\n");
+        std::printf("  Shift+click multi-select\n");
+        std::printf("  G=grid, X=wireframe, H=help, Esc=quit\n\n");
     };
     print_help();
 
-    // ── Main loop ────────────────────────────────
     uint64_t last = SDL_GetTicks();
     uint32_t prev_mouse = 0;
-    bool running = true;
     int frame = 0;
 
-    while (running) {
+    while (!window.should_close()) {
         uint64_t now = SDL_GetTicks();
         double dt = (now - last) / 1000.0;
         last = now; frame++;
 
         window.poll_events();
-        if (window.should_close) running = false;
-        if (window.was_key_released(SDL_SCANCODE_ESCAPE)) running = false;
+        if (window.was_key_released(SDL_SCANCODE_ESCAPE))
+            window.close();
 
         if (window.was_key_released(SDL_SCANCODE_TAB)) {
-            window.input_mode = (window.input_mode == app::InputMode::FPS)
+            auto next = (window.input_mode == app::InputMode::FPS)
                 ? app::InputMode::UI : app::InputMode::FPS;
-            window.set_input_mode(window.input_mode);
+            window.input_mode = next;
+            window.set_input_mode(next);
         }
 
         cam_sys.update(reg, dt);
-        window.event_state.mouse_rel_x = 0;
-        window.event_state.mouse_rel_y = 0;
+        window.reset_mouse_delta();
         grid_sys.update(reg, dt);
         poly_sys.update(reg, dt);
         mesh_sys.update(reg, dt);
 
-        // ── Gizmo mode keys (work in both modes) ─
         if (window.was_key_released(SDL_SCANCODE_1))
             gizmo.set_mode(render::interaction::GizmoMode::Translate);
         if (window.was_key_released(SDL_SCANCODE_2))
@@ -210,16 +180,12 @@ int main() {
         if (window.was_key_released(SDL_SCANCODE_H))
             print_help();
 
-        // Update window title with current mode
-        {
-            const char* gm[] = {"Translate","Rotate","Scale"};
-            char title[128];
-            snprintf(title, sizeof(title), "extropian-render — %s | %s gizmo | %s",
-                window.input_mode == app::InputMode::FPS ? "FPS" : "UI",
-                gm[static_cast<int>(gizmo.mode())],
-                window.grid_visible ? "grid ON" : "grid OFF");
-            SDL_SetWindowTitle(window.sdl_window, title);
-        }
+        window.set_title(
+            (window.input_mode == app::InputMode::FPS ? "FPS" : "UI")
+            + std::string(" | ")
+            + (gizmo.mode() == render::interaction::GizmoMode::Translate ? "T" :
+               gizmo.mode() == render::interaction::GizmoMode::Rotate ? "R" : "S")
+            + std::string(" gizmo | extropian-render demo"));
 
         // ── UI interaction ───────────────────────
         float mx, my;
@@ -253,13 +219,11 @@ int main() {
                 break;
             }
         }
-
         if (gizmo.is_dragging() && !held) gizmo.on_mouse_release();
 
         // ── Render ──────────────────────────────
         render_sys.update(reg, dt);
 
-        // Grid overlay (before gizmo so it stays behind)
         if (window.grid_visible) {
             for (auto ge : reg.view<render::GridComponent, render::RenderableComponent>()) {
                 auto& rc = reg.get<render::RenderableComponent>(ge);
@@ -272,7 +236,6 @@ int main() {
                     math::Mat4 v = math::Mat4::look_at(ct.position, ct.position+fwd, up);
                     math::Mat4 p = math::Mat4::perspective(cc.fov_y_radians,
                         (float)w/(float)h, cc.near_plane, cc.far_plane);
-
                     uint32_t prog = ctx.shader_manager.get_or_load("grid",
                         "shaders/opengl/gizmo/gizmo.vert",
                         "shaders/opengl/gizmo/gizmo.frag");
@@ -294,13 +257,12 @@ int main() {
             }
         }
 
-        // Gizmo overlay (always on top)
         if (window.input_mode == app::InputMode::UI) {
             for (auto e : reg.view<render::CameraComponent, render::Transform>()) {
                 auto& cc = reg.get<render::CameraComponent>(e);
                 auto& ct = reg.get<render::Transform>(e);
-                math::Vec3f fwd = (ct.rotation * math::Vec3f{0,0,-1}).normalized();
-                math::Vec3f up  = (ct.rotation * math::Vec3f{0,1,0}).normalized();
+                math::Vec3f fwd = (ct.rotation*math::Vec3f{0,0,-1}).normalized();
+                math::Vec3f up  = (ct.rotation*math::Vec3f{0,1,0}).normalized();
                 math::Mat4 v = math::Mat4::look_at(ct.position, ct.position+fwd, up);
                 math::Mat4 p = math::Mat4::perspective(cc.fov_y_radians,
                     (float)w/(float)h, cc.near_plane, cc.far_plane);

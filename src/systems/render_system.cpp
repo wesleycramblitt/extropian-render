@@ -2,9 +2,11 @@
 #include <exd/render/components/camera_component.hpp>
 #include <exd/render/components/cubemap.hpp>
 #include <exd/render/components/disabled.hpp>
+#include <exd/render/components/environment.hpp>
 #include <exd/render/components/particle_cloud.hpp>
 #include <exd/render/components/render_technique_tags.hpp>
 #include <exd/render/components/renderable.hpp>
+#include <exd/render/components/material.hpp>
 #include <exd/render/components/selected.hpp>
 #include <exd/render/components/simulation_domain.hpp>
 #include <exd/render/components/simulation_reference.hpp>
@@ -45,10 +47,34 @@ void RenderSystem::render_cubemap_pass(exd::ecs::Registry& registry,
 }
 
 void RenderSystem::render_opaque_pass(exd::ecs::Registry& registry,
-                                       const math::Mat4& view, const math::Mat4& proj) {
+                                       const math::Mat4& view, const math::Mat4& proj,
+                                       const math::Vec3f& cam_pos) {
     auto v = registry.view<Transform, RenderableComponent, RenderTechnique_Lambertian>();
     if (v.begin() == v.end()) return;
-    lambertian_.bind(view, proj);
+
+    // discover scene-wide fog / lighting from ECS (first entity wins)
+    math::Vec3f fog_color{0.5f, 0.5f, 0.5f};
+    float fog_density = 0.0f;
+    math::Vec3f ambient{0.1f, 0.1f, 0.1f};
+    math::Vec3f sun_dir{0.5f, 1.0f, 0.3f};
+    math::Vec3f sun_color{1.0f, 1.0f, 1.0f};
+
+    for (auto e : registry.view<FogComponent>()) {
+        auto& f = registry.get<FogComponent>(e);
+        fog_color = f.color;
+        fog_density = f.density;
+        break;
+    }
+    for (auto e : registry.view<SceneLighting>()) {
+        auto& sl = registry.get<SceneLighting>(e);
+        ambient = sl.ambient;
+        sun_dir = sl.sun_direction;
+        sun_color = sl.sun_color;
+        break;
+    }
+
+    lambertian_.bind(view, proj, cam_pos, fog_color, fog_density,
+                     ambient, sun_dir, sun_color);
     for (auto e : v) {
         if (registry.has<Disabled>(e)) continue;
         auto& r = registry.get<RenderableComponent>(e);
@@ -186,7 +212,7 @@ void RenderSystem::update(exd::ecs::Registry& registry, double /*dt*/) {
                                                    cam->near_plane, cam->far_plane);
 
     render_cubemap_pass(registry, view_mat, proj_mat);
-    render_opaque_pass(registry, view_mat, proj_mat);
+    render_opaque_pass(registry, view_mat, proj_mat, cam_xform->position);
     render_reflective_pass(registry, view_mat, proj_mat, cam_xform->position);
     render_particle_pass(registry, view_mat, proj_mat);
     render_volume_pass(registry, view_mat, proj_mat, cam_xform->position);
