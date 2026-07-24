@@ -52,7 +52,7 @@ using namespace exd;
 
 int main() {
     app::Window window;
-    if (!window.sdl_window || !window.gl_context) {
+    if (!window.is_valid()) {
         std::fprintf(stderr, "FATAL: window creation failed\n");
         return 1;
     }
@@ -184,18 +184,17 @@ int main() {
         last = now; frame++;
 
         window.poll_events();
-        if (window.should_close) running = false;
+        if (window.should_close()) running = false;
         if (window.was_key_released(SDL_SCANCODE_ESCAPE)) running = false;
 
         if (window.was_key_released(SDL_SCANCODE_TAB)) {
-            window.input_mode = (window.input_mode == app::InputMode::FPS)
-                ? app::InputMode::UI : app::InputMode::FPS;
-            window.set_input_mode(window.input_mode);
+            window.set_input_mode(
+                window.input_mode == app::InputMode::FPS
+                    ? app::InputMode::UI : app::InputMode::FPS);
         }
 
         cam_sys.update(reg, dt);
-        window.event_state.mouse_rel_x = 0;
-        window.event_state.mouse_rel_y = 0;
+        window.reset_mouse_delta();
         grid_sys.update(reg, dt);
         poly_sys.update(reg, dt);
         mesh_sys.update(reg, dt);
@@ -218,7 +217,7 @@ int main() {
                 window.input_mode == app::InputMode::FPS ? "FPS" : "UI",
                 gm[static_cast<int>(gizmo.mode())],
                 window.grid_visible ? "grid ON" : "grid OFF");
-            SDL_SetWindowTitle(window.sdl_window, title);
+            window.set_title(title);
         }
 
         // ── UI interaction ───────────────────────
