@@ -43,6 +43,7 @@
 #include <exd/render/components/grid.hpp>
 #include <exd/render/components/selected.hpp>
 #include <exd/geometry/primitives3d.hpp>
+#include <exd/core/logging.hpp>
 #include <SDL3/SDL.h>
 #include <glad/gl.h>
 #include <cstdio>
@@ -53,10 +54,10 @@ using namespace exd;
 int main() {
     app::Window window;
     if (!window.is_valid()) {
-        std::fprintf(stderr, "FATAL: window creation failed\n");
+        exd::core::log_error("FATAL: window creation failed");
         return 1;
     }
-    std::printf("OpenGL %s | %s\n",
+    exd::core::log_info("OpenGL %s | %s",
         glGetString(GL_VERSION), glGetString(GL_SHADING_LANGUAGE_VERSION));
 
     int w, h; float aspect;
@@ -313,13 +314,13 @@ int main() {
 
         if (frame % 60 == 0) {
             const char* names[] = {"Translate","Rotate","Scale"};
-            std::printf("[%4d] FPS=%.0f  sel=%d  gizmo=%s  mode=%s\n",
+            exd::core::log_info("[%4d] FPS=%.0f  sel=%d  gizmo=%s  mode=%s",
                 frame, 1.0/dt, selection.selection_count(reg),
                 names[static_cast<int>(gizmo.mode())],
                 window.input_mode == app::InputMode::FPS ? "FPS" : "UI");
         }
     }
 
-    std::printf("[demo] Shutdown — %d frames rendered\n", frame);
+    exd::core::log_info("[demo] Shutdown — %d frames rendered", frame);
     return 0;
 }

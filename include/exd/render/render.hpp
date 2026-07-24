@@ -42,4 +42,4 @@
 #include <exd/render/interaction/selection.hpp>
 #include <exd/render/interaction/ray.hpp>
 #include <exd/render/interaction/gizmo.hpp>
-#include <exd/render/interaction/gizmo_mesh.hpp>
+// (gizmo_mesh.hpp not yet implemented — skipped from umbrella)
