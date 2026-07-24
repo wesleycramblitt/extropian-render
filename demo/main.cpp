@@ -37,14 +37,12 @@
 #include <exd/render/components/camera_component.hpp>
 #include <exd/render/components/camera_controller.hpp>
 #include <exd/render/components/cube.hpp>
-#include <exd/render/components/sphere.hpp>
-#include <exd/render/components/cylinder.hpp>
-#include <exd/render/components/cone.hpp>
 #include <exd/render/components/renderable.hpp>
 #include <exd/render/components/render_technique_tags.hpp>
 #include <exd/render/components/cubemap.hpp>
 #include <exd/render/components/grid.hpp>
 #include <exd/render/components/selected.hpp>
+#include <exd/geometry/primitives3d.hpp>
 #include <SDL3/SDL.h>
 #include <glad/gl.h>
 #include <cstdio>
@@ -88,59 +86,53 @@ int main() {
     reg.emplace<render::GridComponent>(grid, 50.0f);
     reg.emplace<render::Transform>(grid);
 
-    // Center — large cube (easy click target)
+    // Center — large cube
     auto center = reg.create("CenterCube");
     reg.emplace<render::Transform>(center, math::Vec3f{0, 1.5f, 0});
     reg.emplace<render::CubePrimitive>(center, 2.5f);
     reg.emplace<render::RenderTechnique_Lambertian>(center);
 
-    // Spheres — ring of 4
-    auto s1 = reg.create("Sphere1");
-    reg.emplace<render::Transform>(s1, math::Vec3f{ 4, 1.5f,  4});
-    reg.emplace<render::SpherePrimitive>(s1, 0.8f, 32);
-    reg.emplace<render::RenderTechnique_Lambertian>(s1);
+    // Generate shape meshes via extropian-geometry (types unified via core)
+    using namespace exd::geometry;
+    uint32_t sphere_mesh = ctx.mesh_manager.create(
+        generate_sphere_mesh(SphereGeometry{.radius=0.8f, .latitudeSegments=16, .longitudeSegments=32}));
+    uint32_t cylinder_mesh = ctx.mesh_manager.create(
+        generate_cylinder_mesh(CylinderGeometry{.radius=0.5f, .height=2.0f, .slices=32, .capped=true}));
+    uint32_t cone_mesh = ctx.mesh_manager.create(
+        generate_cone_mesh(ConeGeometry{.radius=0.8f, .height=2.0f, .slices=32, .capped=true}));
 
-    auto s2 = reg.create("Sphere2");
-    reg.emplace<render::Transform>(s2, math::Vec3f{-4, 1.5f,  4});
-    reg.emplace<render::SpherePrimitive>(s2, 0.6f, 24);
-    reg.emplace<render::RenderTechnique_Lambertian>(s2);
+    // Spheres
+    auto add_sphere = [&](float x, float z, float r) {
+        auto e = reg.create("Sphere");
+        reg.emplace<render::Transform>(e, math::Vec3f{x, 1.5f, z});
+        reg.emplace<render::RenderableComponent>(e, sphere_mesh);
+        reg.emplace<render::RenderTechnique_Lambertian>(e);
+    };
+    add_sphere( 4,  4, 0.8f);
+    add_sphere(-4,  4, 0.6f);
+    add_sphere( 4, -4, 0.7f);
+    add_sphere(-4, -4, 1.0f);
 
-    auto s3 = reg.create("Sphere3");
-    reg.emplace<render::Transform>(s3, math::Vec3f{ 4, 1.5f, -4});
-    reg.emplace<render::SpherePrimitive>(s3, 0.7f, 32);
-    reg.emplace<render::RenderTechnique_Lambertian>(s3);
+    // Cylinders
+    auto add_cylinder = [&](float x, float z) {
+        auto e = reg.create("Cylinder");
+        reg.emplace<render::Transform>(e, math::Vec3f{x, 1.5f, z});
+        reg.emplace<render::RenderableComponent>(e, cylinder_mesh);
+        reg.emplace<render::RenderTechnique_Lambertian>(e);
+    };
+    add_cylinder(-3, 0);
+    add_cylinder(-1, 0);
+    add_cylinder( 1, 0);
 
-    auto s4 = reg.create("Sphere4");
-    reg.emplace<render::Transform>(s4, math::Vec3f{-4, 1.5f, -4});
-    reg.emplace<render::SpherePrimitive>(s4, 1.0f, 40);
-    reg.emplace<render::RenderTechnique_Lambertian>(s4);
-
-    // Cylinders — row of 3
-    auto c1 = reg.create("Cylinder1");
-    reg.emplace<render::Transform>(c1, math::Vec3f{-3, 1.5f, 0});
-    reg.emplace<render::CylinderPrimitive>(c1, 0.4f, 2.0f, 32);
-    reg.emplace<render::RenderTechnique_Lambertian>(c1);
-
-    auto c2 = reg.create("Cylinder2");
-    reg.emplace<render::Transform>(c2, math::Vec3f{-1, 1.5f, 0});
-    reg.emplace<render::CylinderPrimitive>(c2, 0.5f, 1.5f, 32);
-    reg.emplace<render::RenderTechnique_Lambertian>(c2);
-
-    auto c3 = reg.create("Cylinder3");
-    reg.emplace<render::Transform>(c3, math::Vec3f{ 1, 1.5f, 0});
-    reg.emplace<render::CylinderPrimitive>(c3, 0.3f, 2.5f, 24);
-    reg.emplace<render::RenderTechnique_Lambertian>(c3);
-
-    // Cones — trio
-    auto cn1 = reg.create("Cone1");
-    reg.emplace<render::Transform>(cn1, math::Vec3f{ 3, 1.0f, 0});
-    reg.emplace<render::ConePrimitive>(cn1, 0.8f, 2.0f, 32);
-    reg.emplace<render::RenderTechnique_Lambertian>(cn1);
-
-    auto cn2 = reg.create("Cone2");
-    reg.emplace<render::Transform>(cn2, math::Vec3f{-5, 1.0f, -5});
-    reg.emplace<render::ConePrimitive>(cn2, 0.6f, 1.5f, 24);
-    reg.emplace<render::RenderTechnique_Lambertian>(cn2);
+    // Cones
+    auto add_cone = [&](float x, float z) {
+        auto e = reg.create("Cone");
+        reg.emplace<render::Transform>(e, math::Vec3f{x, 1.0f, z});
+        reg.emplace<render::RenderableComponent>(e, cone_mesh);
+        reg.emplace<render::RenderTechnique_Lambertian>(e);
+    };
+    add_cone( 3, 0);
+    add_cone(-5,-5);
 
     // Reflective cube (mirror technique — reflects skybox)
     auto mirror = reg.create("Mirror");
@@ -151,7 +143,7 @@ int main() {
     // Floating reflective sphere
     auto mir_sph = reg.create("MirrorSphere");
     reg.emplace<render::Transform>(mir_sph, math::Vec3f{5, 3.0f, 5});
-    reg.emplace<render::SpherePrimitive>(mir_sph, 0.8f, 32);
+    reg.emplace<render::RenderableComponent>(mir_sph, sphere_mesh);
     reg.emplace<render::RenderTechnique_Mirror>(mir_sph);
 
     // Skybox

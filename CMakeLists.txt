@@ -29,14 +29,6 @@ if(NOT TARGET exd::app)
     FetchContent_MakeAvailable(exd-app)
 endif()
 
-if(NOT TARGET exd::geometry)
-    FetchContent_Declare(exd-geometry
-        GIT_REPOSITORY https://github.com/wesleycramblitt/extropian-geometry.git
-        GIT_TAG main
-    )
-    FetchContent_MakeAvailable(exd-geometry)
-endif()
-
 find_package(OpenGL REQUIRED)
 
 find_package(SDL3 CONFIG QUIET)
@@ -67,7 +59,6 @@ target_link_libraries(exd-render PUBLIC
     assimp::assimp
     exd::core
     exd::app
-    exd::geometry
     OpenGL::GL
     SDL3::SDL3
 )

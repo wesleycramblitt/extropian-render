@@ -7,19 +7,15 @@
 
 namespace exd::render {
 
-/// Generates GPU meshes for primitive shape components.
-/// Supports CubePrimitive, SpherePrimitive, CylinderPrimitive, ConePrimitive.
-/// Delegates mesh generation to extropian-geometry.
+/// Generates GPU meshes for CubePrimitive entities.
+/// More complex shapes (sphere, cylinder, cone) are handled by
+/// extropian-geometry in the consuming application.
 class PrimitiveMeshSystem {
 public:
     PrimitiveMeshSystem(GraphicsContext& ctx, app::WindowState*) : ctx_(ctx) {}
     void update(exd::ecs::Registry& registry, double) { update_primitives(registry); }
     void update_primitives(exd::ecs::Registry& registry);
-
     Mesh create_cube_mesh(float size);
-    Mesh create_sphere_mesh(float radius, int segments);
-    Mesh create_cylinder_mesh(float radius, float height, int segments);
-    Mesh create_cone_mesh(float radius, float height, int segments);
 
 private:
     GraphicsContext& ctx_;

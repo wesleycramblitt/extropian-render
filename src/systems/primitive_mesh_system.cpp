@@ -1,72 +1,42 @@
 #include <exd/render/systems/primitive_mesh_system.hpp>
 #include <exd/render/components/cube.hpp>
-#include <exd/render/components/sphere.hpp>
-#include <exd/render/components/cylinder.hpp>
-#include <exd/render/components/cone.hpp>
 #include <exd/render/components/renderable.hpp>
-#include <exd/render/graphics/mesh_convert.hpp>
-#include <exd/geometry/primitives3d.hpp>
 
 namespace exd::render {
-
-static uint32_t create_and_assign(ecs::Registry& registry, ecs::Entity e,
-                                   GraphicsContext& ctx, const Mesh& mesh,
-                                   const char*) {
-    uint32_t handle = ctx.mesh_manager.create(mesh);
-    if (registry.has<RenderableComponent>(e))
-        registry.get<RenderableComponent>(e).mesh = handle;
-    else
-        registry.emplace<RenderableComponent>(e, handle);
-    return handle;
-}
 
 void PrimitiveMeshSystem::update_primitives(exd::ecs::Registry& registry) {
     for (auto e : registry.view<CubePrimitive>()) {
         auto& c = registry.get<CubePrimitive>(e);
-        create_and_assign(registry, e, ctx_, create_cube_mesh(c.size), "Cube");
-    }
-    for (auto e : registry.view<SpherePrimitive>()) {
-        auto& s = registry.get<SpherePrimitive>(e);
-        create_and_assign(registry, e, ctx_, create_sphere_mesh(s.radius, s.segments), "Sphere");
-    }
-    for (auto e : registry.view<CylinderPrimitive>()) {
-        auto& c = registry.get<CylinderPrimitive>(e);
-        create_and_assign(registry, e, ctx_, create_cylinder_mesh(c.radius, c.height, c.segments), "Cylinder");
-    }
-    for (auto e : registry.view<ConePrimitive>()) {
-        auto& c = registry.get<ConePrimitive>(e);
-        create_and_assign(registry, e, ctx_, create_cone_mesh(c.radius, c.height, c.segments), "Cone");
+        uint32_t handle = ctx_.mesh_manager.create(create_cube_mesh(c.size));
+        if (registry.has<RenderableComponent>(e))
+            registry.get<RenderableComponent>(e).mesh = handle;
+        else
+            registry.emplace<RenderableComponent>(e, handle);
     }
 }
 
 Mesh PrimitiveMeshSystem::create_cube_mesh(float size) {
-    return convert_geometry_mesh(exd::geometry::generate_box_mesh(
-        exd::geometry::BoxGeometry{.size = {size, size, size}}));
-}
-
-Mesh PrimitiveMeshSystem::create_sphere_mesh(float radius, int segments) {
-    return convert_geometry_mesh(exd::geometry::generate_sphere_mesh(
-        exd::geometry::SphereGeometry{
-            .radius = radius,
-            .latitudeSegments = static_cast<uint32_t>(segments / 2),
-            .longitudeSegments = static_cast<uint32_t>(segments)
-        }));
-}
-
-Mesh PrimitiveMeshSystem::create_cylinder_mesh(float radius, float height, int segments) {
-    return convert_geometry_mesh(exd::geometry::generate_cylinder_mesh(
-        exd::geometry::CylinderGeometry{
-            .radius = radius, .height = height,
-            .slices = static_cast<uint32_t>(segments), .capped = true
-        }));
-}
-
-Mesh PrimitiveMeshSystem::create_cone_mesh(float radius, float height, int segments) {
-    return convert_geometry_mesh(exd::geometry::generate_cone_mesh(
-        exd::geometry::ConeGeometry{
-            .radius = radius, .height = height,
-            .slices = static_cast<uint32_t>(segments), .capped = true
-        }));
+    Mesh mesh;
+    float h = size * 0.5f;
+    struct Face { math::Vec3f n, v0, v1, v2, v3; };
+    Face faces[6] = {
+        {{1,0,0}, {h,-h,-h},{h,h,-h},{h,h,h},{h,-h,h}},
+        {{-1,0,0},{-h,-h,h},{-h,h,h},{-h,h,-h},{-h,-h,-h}},
+        {{0,1,0},{-h,h,-h},{-h,h,h},{h,h,h},{h,h,-h}},
+        {{0,-1,0},{-h,-h,h},{-h,-h,-h},{h,-h,-h},{h,-h,h}},
+        {{0,0,1},{-h,-h,h},{h,-h,h},{h,h,h},{-h,h,h}},
+        {{0,0,-1},{-h,-h,-h},{-h,h,-h},{h,h,-h},{h,-h,-h}},
+    };
+    for (auto& f : faces) {
+        uint32_t start = mesh.vertices.size();
+        mesh.vertices.push_back({f.v0, f.n});
+        mesh.vertices.push_back({f.v1, f.n});
+        mesh.vertices.push_back({f.v2, f.n});
+        mesh.vertices.push_back({f.v3, f.n});
+        mesh.indices.insert(mesh.indices.end(),
+            {start+0,start+1,start+2,start+0,start+2,start+3});
+    }
+    return mesh;
 }
 
 } // namespace exd::render

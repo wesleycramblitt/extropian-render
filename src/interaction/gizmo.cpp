@@ -1,12 +1,8 @@
 #include <exd/render/interaction/gizmo.hpp>
 #include <exd/render/components/transform.hpp>
 #include <exd/render/components/selected.hpp>
-#include <exd/render/graphics/mesh_convert.hpp>
 #include <exd/core/macros.hpp>
 
-#include <exd/geometry/primitives3d.hpp>
-
-#include <cstdio>
 #include <cmath>
 #include <algorithm>
 
@@ -22,46 +18,120 @@ static const float PLANE_SIZE      = 0.20f;
 
 GizmoSystem::GizmoSystem(GraphicsContext& ctx) : ctx_(ctx) {}
 
+// ── Inline mesh generators (no external geometry dep) ──
+
+static Mesh make_arrow_mesh() {
+    Mesh m;
+    float body_top = ARROW_LENGTH - ARROW_HEAD_LEN;
+    float body_r = 0.04f, head_r = ARROW_HEAD_R;
+    int segs = 16;
+    float step = 2.0f * 3.14159265f / segs;
+
+    // Cylinder body
+    for (int i = 0; i <= segs; ++i) {
+        float a = i * step;
+        float x = std::cos(a) * body_r, z = std::sin(a) * body_r;
+        m.vertices.push_back({{x, 0, z}});
+        m.vertices.push_back({{x, body_top, z}});
+    }
+    for (int i = 0; i < segs; ++i) {
+        uint32_t b0 = i*2, b1 = i*2+1, t0 = (i+1)*2, t1 = (i+1)*2+1;
+        m.indices.insert(m.indices.end(), {b0,b1,t0, t0,b1,t1});
+    }
+    // Cone tip
+    uint32_t tip = m.vertices.size();
+    m.vertices.push_back({{0, ARROW_LENGTH, 0}});
+    uint32_t base_start = m.vertices.size();
+    for (int i = 0; i <= segs; ++i) {
+        float a = i * step;
+        m.vertices.push_back({{std::cos(a)*head_r, body_top, std::sin(a)*head_r}});
+    }
+    for (int i = 0; i < segs; ++i)
+        m.indices.insert(m.indices.end(), {base_start+(uint32_t)i, base_start+(uint32_t)i+1, tip});
+    // Cone base cap
+    uint32_t cap_center = m.vertices.size();
+    m.vertices.push_back({{0, body_top, 0}});
+    uint32_t cap_start = m.vertices.size();
+    for (int i = 0; i <= segs; ++i) {
+        float a = i * step;
+        m.vertices.push_back({{std::cos(a)*head_r, body_top, std::sin(a)*head_r}});
+    }
+    for (int i = 0; i < segs; ++i)
+        m.indices.insert(m.indices.end(), {cap_center, cap_start+(uint32_t)i, cap_start+(uint32_t)i+1});
+    return m;
+}
+
+static Mesh make_ring_mesh() {
+    Mesh m;
+    int segs = 48, tube_segs = 8;
+    float r = RING_RADIUS, tr = 0.03f;
+    float a_step = 2.0f*3.14159265f/segs, t_step = 2.0f*3.14159265f/tube_segs;
+    for (int i = 0; i <= segs; ++i) {
+        float a = i*a_step;
+        float cx = std::cos(a)*r, cy = std::sin(a)*r;
+        for (int j = 0; j < tube_segs; ++j) {
+            float t = j*t_step;
+            float tx = std::cos(a)*std::cos(t)*tr;
+            float ty = std::sin(a)*std::cos(t)*tr;
+            float tz = std::sin(t)*tr;
+            m.vertices.push_back({{cx+tx, cy+ty, tz}});
+        }
+    }
+    for (int i = 0; i < segs; ++i) {
+        for (int j = 0; j < tube_segs; ++j) {
+            uint32_t a = i*tube_segs+j, b = i*tube_segs+(j+1)%tube_segs;
+            uint32_t c = (i+1)*tube_segs+j, d = (i+1)*tube_segs+(j+1)%tube_segs;
+            m.indices.insert(m.indices.end(), {a,c,b, b,c,d});
+        }
+    }
+    return m;
+}
+
+static Mesh make_box_mesh() {
+    Mesh m;
+    float h = BOX_SIZE * 0.5f;
+    math::Vec3f c[8] = {{-h,-h,-h},{h,-h,-h},{h,h,-h},{-h,h,-h},
+                         {-h,-h,h},{h,-h,h},{h,h,h},{-h,h,h}};
+    uint32_t f[6][4] = {{0,1,2,3},{4,5,6,7},{0,1,5,4},{2,3,7,6},{0,3,7,4},{1,2,6,5}};
+    math::Vec3f n[6] = {{0,0,-1},{0,0,1},{0,-1,0},{0,1,0},{-1,0,0},{1,0,0}};
+    for (int i = 0; i < 6; ++i) {
+        uint32_t s = m.vertices.size();
+        for (int v = 0; v < 4; ++v) m.vertices.push_back({c[f[i][v]], n[i]});
+        m.indices.insert(m.indices.end(), {s,s+1,s+2, s,s+2,s+3});
+    }
+    return m;
+}
+
+static Mesh make_plane_mesh() {
+    Mesh m;
+    float h = PLANE_SIZE * 0.5f;
+    uint32_t s = m.vertices.size();
+    m.vertices.push_back({{-h,-h,0},{0,0,1}});
+    m.vertices.push_back({{ h,-h,0},{0,0,1}});
+    m.vertices.push_back({{ h, h,0},{0,0,1}});
+    m.vertices.push_back({{-h, h,0},{0,0,1}});
+    m.indices.insert(m.indices.end(), {s,s+1,s+2, s,s+2,s+3});
+    return m;
+}
+
 // ── Geometry upload ───────────────────────────────
 
 void GizmoSystem::ensure_geometry() {
     if (geometry_ready_) return;
     geometry_ready_ = true;
 
-    using namespace exd::geometry;
-
-    // Arrow (used for X/Y/Z — rotated via model matrix)
-    auto arrow_md = generate_arrow3d_mesh(Arrow3DGeometry{
-        .start = {0,0,0}, .end = {0,ARROW_LENGTH,0},
-        .headRadius = ARROW_HEAD_R, .headLength = ARROW_HEAD_LEN,
-        .shaftRadius = 0.04f, .slices = 16
-    });
-    Mesh arrow = convert_geometry_mesh(arrow_md);
+    Mesh arrow  = make_arrow_mesh();
     arrow_x_ = upload_mesh(arrow);
     arrow_y_ = arrow_x_;
     arrow_z_ = arrow_x_;
 
-    // Ring (torus in XY plane)
-    auto ring_md = generate_torus_mesh(TorusGeometry{
-        .majorRadius = RING_RADIUS, .minorRadius = 0.03f,
-        .majorSegments = 48, .minorSegments = 8
-    });
-    Mesh ring = convert_geometry_mesh(ring_md);
+    Mesh ring   = make_ring_mesh();
     ring_x_ = upload_mesh(ring);
     ring_y_ = ring_x_;
     ring_z_ = ring_x_;
 
-    // Box
-    auto box_md = generate_box_mesh(BoxGeometry{.size = {BOX_SIZE, BOX_SIZE, BOX_SIZE}});
-    Mesh box = convert_geometry_mesh(box_md);
-    box_handle_ = upload_mesh(box);
-
-    // Plane handle (small square)
-    auto plane_md = generate_plane_mesh(PlaneGeometry{
-        .size = {PLANE_SIZE, 0, PLANE_SIZE}, .segmentsW = 1, .segmentsD = 1
-    });
-    Mesh plane = convert_geometry_mesh(plane_md);
-    plane_xy_ = upload_mesh(plane);
+    box_handle_ = upload_mesh(make_box_mesh());
+    plane_xy_   = upload_mesh(make_plane_mesh());
     plane_xz_ = plane_xy_;
     plane_yz_ = plane_xy_;
 }
