@@ -498,7 +498,7 @@ math::Vec3f GizmoSystem::drag_delta(const math::Vec3f& cam_pos,
     // dragging object toward/away from camera).
     float dist = drag_start_pos_.distance(cam_pos);
     float half_h = std::tan(fov_y_rad * 0.5f);
-    float world_per_pixel = 2.0f * half_h * dist / screen_h;
+    float world_per_pixel = 2.5f * half_h * dist / screen_h;
 
     math::Vec3f right = cam_forward.cross(cam_up).normalized();
     return right * dx * world_per_pixel + cam_up * (-dy) * world_per_pixel;
@@ -519,8 +519,7 @@ void GizmoSystem::render(ecs::Registry& registry,
 
     float scale = get_gizmo_scale(pos, cam_pos, proj);
     glEnable(GL_DEPTH_TEST);
-    // Gizmo always renders on top — handles must be visible and
-    // clickable even when occluded by the selected object.
+    glDisable(GL_CULL_FACE);  // gizmo must be visible from all angles
     glDepthFunc(GL_ALWAYS);
 
     switch (mode_) {
@@ -529,6 +528,7 @@ void GizmoSystem::render(ecs::Registry& registry,
         case GizmoMode::Scale:     draw_scale_gizmo(view, proj, pos, scale);     break;
     }
     glDepthFunc(GL_LESS);
+    glEnable(GL_CULL_FACE);
     GL_CALL(glUseProgram(0));
 }
 

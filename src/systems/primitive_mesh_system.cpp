@@ -6,6 +6,11 @@ namespace exd::render {
 
 void PrimitiveMeshSystem::update_primitives(exd::ecs::Registry& registry) {
     for (auto e : registry.view<CubePrimitive>()) {
+        // Only generate mesh once — skip if already assigned
+        if (registry.has<RenderableComponent>(e) &&
+            registry.get<RenderableComponent>(e).mesh != 0)
+            continue;
+
         auto& c = registry.get<CubePrimitive>(e);
         uint32_t handle = ctx_.mesh_manager.create(create_cube_mesh(c.size));
         if (registry.has<RenderableComponent>(e))
