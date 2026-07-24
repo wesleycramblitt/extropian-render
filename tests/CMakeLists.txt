@@ -9,7 +9,9 @@ if(NOT EXISTS "${DOCTEST_DIR}/doctest/doctest.h")
 endif()
 
 # ── Copy shaders to build dir for tests ──────────
-file(COPY ${CMAKE_SOURCE_DIR}/shaders DESTINATION ${CMAKE_BINARY_DIR})
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/../shaders)
+    file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/../shaders DESTINATION ${CMAKE_BINARY_DIR})
+endif()
 
 # ── Non-GL unit tests ────────────────────────────
 add_executable(test-render-unit
