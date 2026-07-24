@@ -192,6 +192,10 @@ void RenderSystem::render_highlight_pass(exd::ecs::Registry& registry,
 }
 
 void RenderSystem::update(exd::ecs::Registry& registry, double /*dt*/) {
+    // Clear the framebuffer — swap_buffers no longer does this (v0.2 API).
+    glClearColor(0.15f, 0.15f, 0.15f, 1.0f);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
     // Find camera entity
     const Transform* cam_xform = nullptr;
     const CameraComponent* cam = nullptr;
