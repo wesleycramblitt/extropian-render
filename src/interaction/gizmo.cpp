@@ -459,7 +459,7 @@ void GizmoSystem::on_mouse_drag(ecs::Registry& registry,
         } else if (mode_ == GizmoMode::Scale) {
             math::Vec3f axis = active_axis_ == GizmoAxis::Center
                 ? math::Vec3f{1,1,1} : axis_direction(active_axis_);
-            float amt = delta.length() * 0.01f;
+            float amt = delta.length() * 0.05f;
             float sign = (delta.dot(axis_direction(active_axis_)) >= 0) ? 1.0f : -1.0f;
             if (active_axis_ == GizmoAxis::Center)
                 xform.scale = xform.scale + math::Vec3f{amt,amt,amt} * sign;
@@ -472,7 +472,7 @@ void GizmoSystem::on_mouse_drag(ecs::Registry& registry,
             }
         } else if (mode_ == GizmoMode::Rotate) {
             math::Vec3f axis = axis_direction(active_axis_);
-            float angle = delta.length() * 0.005f;
+            float angle = delta.length() * 0.02f;
             float sign = (delta.dot(axis.cross(cam_forward)) >= 0) ? 1.0f : -1.0f;
             xform.rotation = math::Quat::from_axis_angle(axis, angle*sign) * xform.rotation;
         }

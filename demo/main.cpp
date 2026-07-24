@@ -187,7 +187,7 @@ int main() {
                gizmo.mode() == render::interaction::GizmoMode::Rotate ? "R" : "S")
             + std::string(" gizmo | extropian-render demo"));
 
-        // ── UI interaction ───────────────────────
+        // ── Mouse state ──────────────────────────
         float mx, my;
         uint32_t btn = SDL_GetMouseState(&mx, &my);
         bool click = (btn & SDL_BUTTON_LMASK) && !(prev_mouse & SDL_BUTTON_LMASK);
@@ -195,7 +195,28 @@ int main() {
         bool shift = window.keyboard_state && window.keyboard_state[SDL_SCANCODE_LSHIFT];
         prev_mouse = btn;
 
-        if (window.input_mode == app::InputMode::UI) {
+        // ── Gizmo interaction (works in both modes) ──
+        for (auto e : reg.view<render::CameraComponent, render::Transform>()) {
+            auto& cc = reg.get<render::CameraComponent>(e);
+            auto& ct = reg.get<render::Transform>(e);
+            math::Vec3f fwd = (ct.rotation * math::Vec3f{0,0,-1}).normalized();
+            math::Vec3f up  = (ct.rotation * math::Vec3f{0,1,0}).normalized();
+            float ar = (float)w / (float)h;
+
+            if (gizmo.is_dragging()) {
+                if (!held) gizmo.on_mouse_release();
+                else gizmo.on_mouse_drag(reg, ct.position, fwd, up,
+                    cc.fov_y_radians, ar, mx, my, (float)w, (float)h);
+            } else if (click) {
+                gizmo.on_mouse_press(reg, ct.position, fwd, up,
+                    cc.fov_y_radians, ar, mx, my, (float)w, (float)h);
+            }
+            break;
+        }
+        if (gizmo.is_dragging() && !held) gizmo.on_mouse_release();
+
+        // ── UI-mode picking (does not run during gizmo drag) ──
+        if (window.input_mode == app::InputMode::UI && !gizmo.is_dragging()) {
             for (auto e : reg.view<render::CameraComponent, render::Transform>()) {
                 auto& cc = reg.get<render::CameraComponent>(e);
                 auto& ct = reg.get<render::Transform>(e);
