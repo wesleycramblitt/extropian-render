@@ -13,6 +13,10 @@ public:
     void load(const std::string& name,
               const std::string& base_path = "assets/environments");
 
+    /// Destroy all entities spawned by every known EnvironmentComponent.
+    /// Call before load() to replace the current environment cleanly.
+    void unload_all();
+
     void update(exd::ecs::Registry& registry, double dt);
 
 private:

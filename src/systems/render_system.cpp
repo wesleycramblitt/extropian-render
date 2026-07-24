@@ -79,6 +79,13 @@ void RenderSystem::render_opaque_pass(exd::ecs::Registry& registry,
         if (registry.has<Disabled>(e)) continue;
         auto& r = registry.get<RenderableComponent>(e);
         if (r.mesh == 0) continue;
+
+        // Apply per-entity material color (default white if no Material component)
+        if (auto* mat = registry.try_get<Material>(e)) {
+            lambertian_.setBaseColor(mat->baseColor);
+        } else {
+            lambertian_.setBaseColor(math::Quat{1.0f, 1.0f, 1.0f, 1.0f});
+        }
         lambertian_.draw(r.mesh, compute_model(registry, e));
     }
     lambertian_.unbind();

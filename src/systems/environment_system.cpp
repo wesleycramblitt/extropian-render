@@ -18,19 +18,26 @@ void EnvironmentSystem::load(const std::string& name, const std::string& base_pa
     load_impl(full_dir, name);
 }
 
-void EnvironmentSystem::load_impl(const std::string& full_dir, const std::string& name) {
+void EnvironmentSystem::unload_all() {
     for (auto e : registry_.view<EnvironmentComponent>()) {
-        if (registry_.get<EnvironmentComponent>(e).name == name) {
-            std::printf("[Environment] %s already loaded, skipping\n", name.c_str());
-            return;
+        auto& env = registry_.get<EnvironmentComponent>(e);
+        for (auto& ent : env.spawned_entities) {
+            if (registry_.valid(ent))
+                registry_.destroy(ent);
         }
+        env.spawned_entities.clear();
+        registry_.destroy(e);  // also destroy the hub entity itself
     }
+}
+
+void EnvironmentSystem::load_impl(const std::string& full_dir, const std::string& name) {
     std::string json_path = full_dir + "/env.json";
     std::ifstream f(json_path);
     if (!f.is_open()) {
         std::fprintf(stderr, "[Environment] Cannot open %s\n", json_path.c_str());
         return;
     }
+
     nlohmann::json cfg;
     try { cfg = nlohmann::json::parse(f); }
     catch (const std::exception& ex) {
@@ -38,36 +45,46 @@ void EnvironmentSystem::load_impl(const std::string& full_dir, const std::string
                      json_path.c_str(), ex.what());
         return;
     }
+
     std::printf("[Environment] Loading %s from %s\n", name.c_str(), json_path.c_str());
 
+    // ── create the environment hub entity ──────────────────────
     auto env_entity = registry_.create(name + "_env");
     auto& env_c = registry_.emplace<EnvironmentComponent>(env_entity);
     env_c.name = name;
+    auto& spawned = env_c.spawned_entities;
 
+    // ── skybox ────────────────────────────────────────────────
     std::string skybox_path = full_dir + "/" + cfg.value("skybox", "skybox/cross.png");
     {
         auto sky_e = registry_.create(name + "_sky");
+        spawned.push_back(sky_e);
         auto& cm = registry_.emplace<CubeMapComponent>(sky_e);
         cm.custom_path = skybox_path;
         cm.cross_layout = true;
         registry_.emplace<RenderTechnique_CubeMap>(sky_e);
     }
 
+    // ── terrain ───────────────────────────────────────────────
     if (cfg.contains("terrain") && cfg["terrain"].contains("mesh")) {
         std::string terrain_path = full_dir + "/" + cfg["terrain"]["mesh"].get<std::string>();
         auto terr_e = registry_.create(name + "_terrain");
+        spawned.push_back(terr_e);
         registry_.emplace<MeshAssetComponent>(terr_e, terrain_path);
         registry_.emplace<RenderTechnique_Lambertian>(terr_e);
         registry_.emplace<Transform>(terr_e);
     }
 
+    // ── props ─────────────────────────────────────────────────
     if (cfg.contains("props")) {
         int prop_idx = 0;
         for (const auto& p : cfg["props"]) {
             std::string prop_path = full_dir + "/" + p["mesh"].get<std::string>();
             auto prop_e = registry_.create(name + "_prop_" + std::to_string(prop_idx++));
+            spawned.push_back(prop_e);
             registry_.emplace<MeshAssetComponent>(prop_e, prop_path);
             registry_.emplace<RenderTechnique_Lambertian>(prop_e);
+
             auto& xform = registry_.emplace<Transform>(prop_e);
             if (p.contains("position")) {
                 auto& pos = p["position"];
@@ -80,8 +97,10 @@ void EnvironmentSystem::load_impl(const std::string& full_dir, const std::string
         }
     }
 
+    // ── scene-wide fog ────────────────────────────────────────
     {
         auto fog_e = registry_.create(name + "_fog");
+        spawned.push_back(fog_e);
         auto& fc = registry_.emplace<FogComponent>(fog_e);
         if (cfg.contains("lighting")) {
             auto& L = cfg["lighting"];
@@ -94,8 +113,10 @@ void EnvironmentSystem::load_impl(const std::string& full_dir, const std::string
         }
     }
 
+    // ── scene-wide lighting ───────────────────────────────────
     {
         auto light_e = registry_.create(name + "_light");
+        spawned.push_back(light_e);
         auto& sl = registry_.emplace<SceneLighting>(light_e);
         if (cfg.contains("lighting")) {
             auto& L = cfg["lighting"];
@@ -115,6 +136,8 @@ void EnvironmentSystem::load_impl(const std::string& full_dir, const std::string
     }
 
     env_c.loaded = true;
+    // also track the hub entity itself
+    // (unload_all iterates EnvironmentComponent view, so the hub is destroyed there)
     std::printf("[Environment] %s loaded successfully\n", name.c_str());
 }
 

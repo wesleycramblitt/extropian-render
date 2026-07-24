@@ -1,6 +1,9 @@
 #pragma once
 
 #include <string>
+#include <cstdint>
+#include <vector>
+#include <exd/ecs/registry.hpp>
 #include <exd/math/vec3.hpp>
 
 namespace exd::render {
@@ -8,6 +11,7 @@ namespace exd::render {
 struct EnvironmentComponent {
     std::string name;
     bool loaded = false;
+    std::vector<exd::ecs::Entity> spawned_entities;  // tracked for unload/cleanup
 };
 
 struct FogComponent {
