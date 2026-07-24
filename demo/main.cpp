@@ -221,6 +221,17 @@ int main() {
         }
         if (gizmo.is_dragging() && !held) gizmo.on_mouse_release();
 
+        // ── Update gizmo hover ──────────────────
+        for (auto e : reg.view<render::CameraComponent, render::Transform>()) {
+            auto& cc = reg.get<render::CameraComponent>(e);
+            auto& ct = reg.get<render::Transform>(e);
+            math::Vec3f fwd = (ct.rotation * math::Vec3f{0,0,-1}).normalized();
+            math::Vec3f up  = (ct.rotation * math::Vec3f{0,1,0}).normalized();
+            gizmo.update_hover(reg, ct.position, fwd, up,
+                cc.fov_y_radians, (float)w/(float)h, mx, my, (float)w, (float)h);
+            break;
+        }
+
         // ── Render ──────────────────────────────
         render_sys.update(reg, dt);
 

@@ -332,7 +332,7 @@ GizmoAxis GizmoSystem::hit_test(const Ray& ray) {
 std::optional<float> GizmoSystem::hit_arrow(const Ray& ray, float length,
                                                float head_len, float head_r) {
     for (float y = 0.05f; y <= length; y += 0.08f) {
-        float r = (y > length - head_len) ? head_r * 0.8f : 0.12f;
+        float r = (y > length - head_len) ? head_r * 1.0f : 0.20f;
         auto t = interaction::ray_sphere(ray, {0, y, 0}, r);
         if (t) return t;
     }
@@ -344,7 +344,7 @@ std::optional<float> GizmoSystem::hit_ring(const Ray& ray, float radius) {
     for (int i = 0; i < samples; ++i) {
         float a = 2.0f * 3.14159265f * i / samples;
         math::Vec3f pt{std::cos(a) * radius, std::sin(a) * radius, 0};
-        auto t = interaction::ray_sphere(ray, pt, 0.10f);
+        auto t = interaction::ray_sphere(ray, pt, 0.15f);
         if (t) return t;
     }
     return std::nullopt;
@@ -353,6 +353,42 @@ std::optional<float> GizmoSystem::hit_ring(const Ray& ray, float radius) {
 std::optional<float> GizmoSystem::hit_box(const Ray& ray, float size) {
     float h = size * 0.5f;
     return interaction::ray_aabb(ray, {-h,-h,-h}, {h,h,h});
+}
+
+// ── Hover detection ──────────────────────────────
+
+GizmoAxis GizmoSystem::hit_test_screen(ecs::Registry& registry,
+                                         const math::Vec3f& cam_pos,
+                                         const math::Vec3f& cam_forward,
+                                         const math::Vec3f& cam_up,
+                                         float fov_y_rad, float aspect,
+                                         float screen_x, float screen_y,
+                                         float screen_w, float screen_h) {
+    math::Vec3f gizmo_pos = get_gizmo_position(registry);
+    if (gizmo_pos == math::Vec3f{0,0,0}) return GizmoAxis::None;
+
+    float scale = get_gizmo_scale(gizmo_pos, cam_pos, math::Mat4{});
+
+    interaction::Ray world_ray = interaction::screen_ray(
+        cam_pos, cam_forward, cam_up, fov_y_rad, aspect,
+        screen_x, screen_y, screen_w, screen_h);
+
+    math::Vec3f local_origin{(world_ray.origin.x - gizmo_pos.x) / scale,
+                             (world_ray.origin.y - gizmo_pos.y) / scale,
+                             (world_ray.origin.z - gizmo_pos.z) / scale};
+    math::Vec3f local_dir = world_ray.direction;
+    interaction::Ray local_ray{local_origin, local_dir};
+
+    return hit_test(local_ray);
+}
+
+void GizmoSystem::update_hover(ecs::Registry& registry,
+                                const math::Vec3f& cam_pos, const math::Vec3f& cam_forward,
+                                const math::Vec3f& cam_up, float fov_y_rad, float aspect,
+                                float screen_x, float screen_y, float screen_w, float screen_h) {
+    if (is_dragging()) return;  // don't change hover during drag
+    hovered_axis_ = hit_test_screen(registry, cam_pos, cam_forward, cam_up,
+                                     fov_y_rad, aspect, screen_x, screen_y, screen_w, screen_h);
 }
 
 // ── Mouse interaction ────────────────────────────
@@ -448,7 +484,6 @@ void GizmoSystem::on_mouse_drag(ecs::Registry& registry,
 void GizmoSystem::on_mouse_release() {
     active_axis_ = GizmoAxis::None;
 }
-
 math::Vec3f GizmoSystem::drag_delta(const math::Vec3f& cam_pos,
                                       const math::Vec3f& cam_forward,
                                       const math::Vec3f& cam_up,
@@ -457,13 +492,17 @@ math::Vec3f GizmoSystem::drag_delta(const math::Vec3f& cam_pos,
                                       float screen_w, float screen_h) {
     float dx = screen_x - last_mouse_x_;
     float dy = screen_y - last_mouse_y_;
-    float dist = drag_origin_.distance(cam_pos);
+
+    // Use current gizmo position for pixel-to-world scaling,
+    // not the original press position (prevents drift when
+    // dragging object toward/away from camera).
+    float dist = drag_start_pos_.distance(cam_pos);
     float half_h = std::tan(fov_y_rad * 0.5f);
     float world_per_pixel = 2.0f * half_h * dist / screen_h;
+
     math::Vec3f right = cam_forward.cross(cam_up).normalized();
     return right * dx * world_per_pixel + cam_up * (-dy) * world_per_pixel;
 }
-
 // ── Rendering ─────────────────────────────────────
 
 void GizmoSystem::render(ecs::Registry& registry,
@@ -497,8 +536,9 @@ void GizmoSystem::draw_handle(uint32_t mesh_id, const math::Mat4& model,
                                 const math::Vec3f& color, GizmoAxis axis,
                                 GizmoMode for_mode) {
     if (mesh_id == 0) return;
-    const math::Vec3f& c = (active_axis_ == axis && for_mode == mode_)
-        ? ACTIVE_COLOR : color;
+    const math::Vec3f& c = (active_axis_ == axis && for_mode == mode_) ? ACTIVE_COLOR
+                         : (hovered_axis_ == axis && for_mode == mode_) ? HOVER_COLOR
+                         : color;
     GLint loc;
     loc = glGetUniformLocation(gizmo_program_, "u_model");
     GL_CALL(glUniformMatrix4fv(loc, 1, GL_FALSE, model.m));

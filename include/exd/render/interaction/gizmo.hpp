@@ -12,10 +12,7 @@
 
 namespace exd::render::interaction {
 
-/// Which transform gizmo to display.
 enum class GizmoMode { Translate, Rotate, Scale };
-
-/// Which axis/handle of the gizmo is currently active.
 enum class GizmoAxis { None, X, Y, Z, XY, XZ, YZ, Center };
 
 } // namespace exd::render::interaction
@@ -26,18 +23,20 @@ using interaction::Ray;
 using interaction::GizmoMode;
 using interaction::GizmoAxis;
 
-/// Renders transformation gizmos and handles mouse interaction
-/// to manipulate entity Transforms.
-///
-/// Gizmo geometry is generated via extropian-geometry (exd::geometry).
 class GizmoSystem {
 public:
     GizmoSystem(GraphicsContext& ctx);
 
-    /// Render the gizmo for the current selection and mode.
     void render(ecs::Registry& registry,
                 const math::Mat4& view, const math::Mat4& proj,
                 const math::Vec3f& cam_pos);
+
+    /// Call every frame (before render) with current mouse position
+    /// so the gizmo can highlight the axis under the cursor.
+    void update_hover(ecs::Registry& registry,
+                      const math::Vec3f& cam_pos, const math::Vec3f& cam_forward,
+                      const math::Vec3f& cam_up, float fov_y_rad, float aspect,
+                      float screen_x, float screen_y, float screen_w, float screen_h);
 
     bool on_mouse_press(ecs::Registry& registry,
                         const math::Vec3f& cam_pos, const math::Vec3f& cam_forward,
@@ -60,6 +59,11 @@ private:
     uint32_t upload_mesh(const Mesh& m);
 
     GizmoAxis hit_test(const Ray& ray);
+    /// Transform mouse to local ray and hit-test. Stores result in hovered_axis_.
+    GizmoAxis hit_test_screen(ecs::Registry& registry,
+                              const math::Vec3f& cam_pos, const math::Vec3f& cam_forward,
+                              const math::Vec3f& cam_up, float fov_y_rad, float aspect,
+                              float screen_x, float screen_y, float screen_w, float screen_h);
     std::optional<float> hit_arrow(const Ray& ray, float length, float head_len, float head_r);
     std::optional<float> hit_ring(const Ray& ray, float radius);
     std::optional<float> hit_box(const Ray& ray, float size);
@@ -86,6 +90,7 @@ private:
     GraphicsContext& ctx_;
     GizmoMode mode_ = GizmoMode::Translate;
     GizmoAxis active_axis_ = GizmoAxis::None;
+    GizmoAxis hovered_axis_ = GizmoAxis::None;
 
     math::Vec3f drag_origin_{};
     math::Vec3f drag_start_pos_{};
@@ -105,7 +110,8 @@ private:
     static constexpr math::Vec3f Y_COLOR{0.2f, 1.0f, 0.2f};
     static constexpr math::Vec3f Z_COLOR{0.2f, 0.3f, 1.0f};
     static constexpr math::Vec3f CENTER_COLOR{0.9f, 0.9f, 0.9f};
-    static constexpr math::Vec3f ACTIVE_COLOR{1.0f, 1.0f, 0.2f};
+    static constexpr math::Vec3f ACTIVE_COLOR{1.0f, 1.0f, 0.2f};   // yellow when dragging
+    static constexpr math::Vec3f HOVER_COLOR{1.0f, 1.0f, 0.6f};    // pale yellow on hover
 };
 
 } // namespace exd::render
