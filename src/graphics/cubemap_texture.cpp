@@ -26,6 +26,16 @@ CubeMapTexture::CubeMapTexture(const std::string& cross_path, int face_size_hint
     //   row 2: empty, -Y, empty, empty
     int face_w = face_size_hint;
     if (face_w <= 0) face_w = w / 4;  // guess from width
+    
+    // Clamp to actual image size (cross layout: 4 faces wide, 3 tall)
+    int max_face_w = w / 4;
+    int max_face_h = h / 3;
+    face_w = std::min({face_w, max_face_w, max_face_h});
+    if (face_w <= 0) {
+        std::fprintf(stderr, "[CubeMap] Invalid cross-layout dimensions: %dx%d\n", w, h);
+        stbi_image_free(img);
+        return;
+    }
 
     // Map cross grid positions to cubemap face indices (+X, -X, +Y, -Y, +Z, -Z)
     struct { int col, row, face; } mappings[] = {
