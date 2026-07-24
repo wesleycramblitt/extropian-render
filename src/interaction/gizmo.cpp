@@ -15,6 +15,8 @@ static const float ARROW_HEAD_R   = 0.10f;
 static const float BOX_SIZE        = 0.12f;
 static const float RING_RADIUS     = 0.85f;
 static const float PLANE_SIZE      = 0.20f;
+static const float ARROW_BODY_R    = 0.025f;
+static const float RING_TUBE_R     = 0.02f;
 
 GizmoSystem::GizmoSystem(GraphicsContext& ctx) : ctx_(ctx) {}
 
@@ -23,7 +25,7 @@ GizmoSystem::GizmoSystem(GraphicsContext& ctx) : ctx_(ctx) {}
 static Mesh make_arrow_mesh() {
     Mesh m;
     float body_top = ARROW_LENGTH - ARROW_HEAD_LEN;
-    float body_r = 0.04f, head_r = ARROW_HEAD_R;
+    float body_r = ARROW_BODY_R, head_r = ARROW_HEAD_R;
     int segs = 16;
     float step = 2.0f * 3.14159265f / segs;
 
@@ -64,7 +66,7 @@ static Mesh make_arrow_mesh() {
 static Mesh make_ring_mesh() {
     Mesh m;
     int segs = 48, tube_segs = 8;
-    float r = RING_RADIUS, tr = 0.03f;
+    float r = RING_RADIUS, tr = RING_TUBE_R;
     float a_step = 2.0f*3.14159265f/segs, t_step = 2.0f*3.14159265f/tube_segs;
     for (int i = 0; i <= segs; ++i) {
         float a = i*a_step;
@@ -157,7 +159,7 @@ float GizmoSystem::get_gizmo_scale(const math::Vec3f& gizmo_pos,
                                     const math::Vec3f& cam_pos,
                                     const math::Mat4&) const {
     float dist = gizmo_pos.distance(cam_pos);
-    return std::max(0.5f, dist * 0.15f);
+    return std::max(0.5f, dist * 0.12f);
 }
 
 math::Mat4 GizmoSystem::gizmo_model(const math::Vec3f& pos, float scale) const {
@@ -196,15 +198,14 @@ GizmoAxis GizmoSystem::hit_test(const Ray& ray) {
             float best = FLT_MAX;
             GizmoAxis best_axis = GizmoAxis::None;
             auto test_axis = [&](GizmoAxis a, math::Vec3f dir) {
-                math::Vec3f w = ray.origin;
                 float a_dir_dot = ray.direction.dot(dir);
-                float t = -(w.dot(dir)) / std::max(std::fabs(a_dir_dot), 1e-7f);
+                float t = -(ray.origin.dot(dir)) / std::max(std::fabs(a_dir_dot), 1e-7f);
                 if (t > 0 && t < best) {
                     math::Vec3f pt = ray.point_at(t);
                     float axis_t = pt.dot(dir);
                     if (axis_t > 0 && axis_t < ARROW_LENGTH * 1.2f) {
                         float dist = (pt - dir * axis_t).length();
-                        if (dist < 0.15f) { best = t; best_axis = a; }
+                        if (dist < 0.20f) { best = t; best_axis = a; }
                     }
                 }
             };
@@ -213,7 +214,7 @@ GizmoAxis GizmoSystem::hit_test(const Ray& ray) {
             test_axis(GizmoAxis::Z, Z_AXIS);
             return best_axis;
         }
-        if (hit_box(ray, PLANE_SIZE * 1.5f)) {
+        if (hit_box(ray, PLANE_SIZE * 2.0f)) {
             math::Vec3f plane_centers[3] = {
                 {PLANE_SIZE*0.5f, PLANE_SIZE*0.5f, 0},
                 {PLANE_SIZE*0.5f, 0, PLANE_SIZE*0.5f},
@@ -227,7 +228,7 @@ GizmoAxis GizmoSystem::hit_test(const Ray& ray) {
                 auto t = interaction::ray_plane(ray, plane_centers[i], plane_normals[i]);
                 if (t && *t < best && *t > 0) {
                     math::Vec3f hit = ray.point_at(*t);
-                    float hs = PLANE_SIZE * 0.6f;
+                    float hs = PLANE_SIZE * 0.7f;
                     if (std::fabs(hit.x - plane_centers[i].x) < hs &&
                         std::fabs(hit.y - plane_centers[i].y) < hs &&
                         std::fabs(hit.z - plane_centers[i].z) < hs) {
@@ -239,29 +240,52 @@ GizmoAxis GizmoSystem::hit_test(const Ray& ray) {
         }
     }
     if (mode_ == GizmoMode::Rotate) {
+        // Rings are in different planes: X ring in YZ, Y ring in XZ, Z ring in XY.
+        // We rotate the ray by the inverse axis rotation to test each ring's plane.
         GizmoAxis ring_axes[3] = {GizmoAxis::X, GizmoAxis::Y, GizmoAxis::Z};
-        for (int i = 0; i < 3; ++i)
-            if (hit_ring(ray, RING_RADIUS)) return ring_axes[i];
+        float best_t = FLT_MAX;
+        GizmoAxis best_ring = GizmoAxis::None;
+        for (int i = 0; i < 3; ++i) {
+            // Apply inverse ring rotation to ray so ring is in XY plane
+            math::Mat4 inv_rot = get_axis_rotation(ring_axes[i]);
+            // Inverse of a rotation = transpose. For axis-angle quaternion,
+            // we negate the angle. get_axis_rotation returns a TRS with
+            // quaternion q. Inverse: conjugate quaternion.
+            // Simpler: just build the inverse rotation directly.
+            math::Quat inv_q;
+            switch (ring_axes[i]) {
+                case GizmoAxis::X: inv_q = math::Quat::from_axis_angle(Z_AXIS, 3.14159265f*0.5f); break;  // +90° around Z
+                case GizmoAxis::Z: inv_q = math::Quat::from_axis_angle(X_AXIS, -3.14159265f*0.5f); break; // -90° around X
+                default: inv_q = math::Quat{}; break;  // Y = identity
+            }
+            // Transform ray direction by inverse rotation
+            math::Vec3f local_dir = inv_q * ray.direction;
+            math::Vec3f local_origin = inv_q * ray.origin;
+            interaction::Ray local_ray{local_origin, local_dir.normalized()};
+            auto t = hit_ring(local_ray, RING_RADIUS);
+            if (t && *t < best_t) { best_t = *t; best_ring = ring_axes[i]; }
+        }
+        if (best_ring != GizmoAxis::None) return best_ring;
     }
     if (mode_ == GizmoMode::Scale) {
-        if (hit_box(ray, BOX_SIZE * 1.5f)) {
+        if (hit_box(ray, BOX_SIZE * 2.0f)) {
             float best = FLT_MAX;
             GizmoAxis best_axis = GizmoAxis::None;
             GizmoAxis axes[3] = {GizmoAxis::X, GizmoAxis::Y, GizmoAxis::Z};
             math::Vec3f dirs[3] = {X_AXIS, Y_AXIS, Z_AXIS};
             for (int i = 0; i < 3; ++i) {
-                auto t = interaction::ray_sphere(ray, dirs[i] * 0.9f, 0.12f);
+                auto t = interaction::ray_sphere(ray, dirs[i] * 1.0f, 0.18f);
                 if (t && *t < best) { best = *t; best_axis = axes[i]; }
             }
             if (best_axis == GizmoAxis::None) {
-                auto t = interaction::ray_sphere(ray, {0,0,0}, 0.15f);
+                auto t = interaction::ray_sphere(ray, {0,0,0}, 0.20f);
                 if (t) return GizmoAxis::Center;
             }
             return best_axis;
         }
     }
-    if (hit_box(ray, BOX_SIZE * 1.3f)) {
-        auto t = interaction::ray_sphere(ray, {0,0,0}, 0.12f);
+    if (hit_box(ray, BOX_SIZE * 1.5f)) {
+        auto t = interaction::ray_sphere(ray, {0,0,0}, 0.18f);
         if (t) return GizmoAxis::Center;
     }
     return GizmoAxis::None;

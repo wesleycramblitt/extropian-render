@@ -1,3 +1,6 @@
+# ── Shaders (needed at runtime by the demo) ─────
+file(COPY ${CMAKE_SOURCE_DIR}/shaders DESTINATION ${CMAKE_BINARY_DIR})
+
 # ── Assets ──────────────────────────────────────
 include(FetchContent)
 if(NOT DEFINED EXD_ASSETS_DIR)

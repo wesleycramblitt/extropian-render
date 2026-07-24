@@ -257,8 +257,8 @@ int main() {
             }
         }
 
-        if (window.input_mode == app::InputMode::UI) {
-            for (auto e : reg.view<render::CameraComponent, render::Transform>()) {
+        // ── Gizmo overlay (renders in both modes) ─
+        for (auto e : reg.view<render::CameraComponent, render::Transform>()) {
                 auto& cc = reg.get<render::CameraComponent>(e);
                 auto& ct = reg.get<render::Transform>(e);
                 math::Vec3f fwd = (ct.rotation*math::Vec3f{0,0,-1}).normalized();
@@ -267,8 +267,7 @@ int main() {
                 math::Mat4 p = math::Mat4::perspective(cc.fov_y_radians,
                     (float)w/(float)h, cc.near_plane, cc.far_plane);
                 gizmo.render(reg, v, p, ct.position);
-                break;
-            }
+            break;
         }
 
         window.swap_buffers();
