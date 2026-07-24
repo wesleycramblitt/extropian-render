@@ -6,19 +6,17 @@
 #include <exd/render/components/renderable.hpp>
 #include <exd/render/graphics/mesh_convert.hpp>
 #include <exd/geometry/primitives3d.hpp>
-#include <cstdio>
 
 namespace exd::render {
 
 static uint32_t create_and_assign(ecs::Registry& registry, ecs::Entity e,
                                    GraphicsContext& ctx, const Mesh& mesh,
-                                   const char* label) {
+                                   const char*) {
     uint32_t handle = ctx.mesh_manager.create(mesh);
     if (registry.has<RenderableComponent>(e))
         registry.get<RenderableComponent>(e).mesh = handle;
     else
         registry.emplace<RenderableComponent>(e, handle);
-    std::printf("[PrimitiveMesh] %s entity %u\n", label, e.id);
     return handle;
 }
 

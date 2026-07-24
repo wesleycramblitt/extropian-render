@@ -208,6 +208,14 @@ int main() {
         poly_sys.update(reg, dt);
         mesh_sys.update(reg, dt);
 
+        // ── Gizmo mode keys (work in both modes) ─
+        if (window.was_key_released(SDL_SCANCODE_1))
+            gizmo.set_mode(render::interaction::GizmoMode::Translate);
+        if (window.was_key_released(SDL_SCANCODE_2))
+            gizmo.set_mode(render::interaction::GizmoMode::Rotate);
+        if (window.was_key_released(SDL_SCANCODE_3))
+            gizmo.set_mode(render::interaction::GizmoMode::Scale);
+
         // ── UI interaction ───────────────────────
         float mx, my;
         uint32_t btn = SDL_GetMouseState(&mx, &my);
@@ -239,13 +247,6 @@ int main() {
                 }
                 break;
             }
-
-            if (window.was_key_released(SDL_SCANCODE_1))
-                gizmo.set_mode(render::interaction::GizmoMode::Translate);
-            if (window.was_key_released(SDL_SCANCODE_2))
-                gizmo.set_mode(render::interaction::GizmoMode::Rotate);
-            if (window.was_key_released(SDL_SCANCODE_3))
-                gizmo.set_mode(render::interaction::GizmoMode::Scale);
         }
 
         if (gizmo.is_dragging() && !held) gizmo.on_mouse_release();
@@ -253,6 +254,42 @@ int main() {
         // ── Render ──────────────────────────────
         render_sys.update(reg, dt);
 
+        // Grid overlay (before gizmo so it stays behind)
+        if (window.grid_visible) {
+            for (auto ge : reg.view<render::GridComponent, render::RenderableComponent>()) {
+                auto& rc = reg.get<render::RenderableComponent>(ge);
+                if (rc.mesh == 0) continue;
+                for (auto e : reg.view<render::CameraComponent, render::Transform>()) {
+                    auto& cc = reg.get<render::CameraComponent>(e);
+                    auto& ct = reg.get<render::Transform>(e);
+                    math::Vec3f fwd = (ct.rotation*math::Vec3f{0,0,-1}).normalized();
+                    math::Vec3f up  = (ct.rotation*math::Vec3f{0,1,0}).normalized();
+                    math::Mat4 v = math::Mat4::look_at(ct.position, ct.position+fwd, up);
+                    math::Mat4 p = math::Mat4::perspective(cc.fov_y_radians,
+                        (float)w/(float)h, cc.near_plane, cc.far_plane);
+
+                    uint32_t prog = ctx.shader_manager.get_or_load("grid",
+                        "shaders/opengl/gizmo/gizmo.vert",
+                        "shaders/opengl/gizmo/gizmo.frag");
+                    glUseProgram(prog);
+                    glUniformMatrix4fv(glGetUniformLocation(prog,"u_view"),1,GL_FALSE,v.m);
+                    glUniformMatrix4fv(glGetUniformLocation(prog,"u_proj"),1,GL_FALSE,p.m);
+                    glUniformMatrix4fv(glGetUniformLocation(prog,"u_model"),1,GL_FALSE,
+                        math::Mat4::identity().m);
+                    glUniform4f(glGetUniformLocation(prog,"u_color"),0.25f,0.25f,0.25f,1.0f);
+                    const auto* m = ctx.mesh_manager.bind(rc.mesh);
+                    if (m->index_count > 0)
+                        glDrawElements(m->topology, m->index_count, GL_UNSIGNED_INT, nullptr);
+                    else
+                        glDrawArrays(m->topology, 0, m->vertex_count);
+                    glUseProgram(0);
+                    break;
+                }
+                break;
+            }
+        }
+
+        // Gizmo overlay (always on top)
         if (window.input_mode == app::InputMode::UI) {
             for (auto e : reg.view<render::CameraComponent, render::Transform>()) {
                 auto& cc = reg.get<render::CameraComponent>(e);

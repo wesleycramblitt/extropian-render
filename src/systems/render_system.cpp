@@ -11,7 +11,6 @@
 #include <exd/render/components/skew.hpp>
 #include <exd/render/components/transform.hpp>
 #include <exd/render/components/volume_field.hpp>
-#include <cstdio>
 
 namespace exd::render {
 
@@ -31,31 +30,14 @@ math::Mat4 RenderSystem::compute_model(exd::ecs::Registry& registry, exd::ecs::E
 void RenderSystem::render_cubemap_pass(exd::ecs::Registry& registry,
                                         const math::Mat4& view, const math::Mat4& proj) {
     auto v = registry.view<CubeMapComponent, RenderableComponent, RenderTechnique_CubeMap>();
-    int count = 0;
-    for (auto it = v.begin(); it != v.end(); ++it) count++;
+    if (v.begin() == v.end()) return;
 
-    if (count == 0) {
-        std::printf("[cubemap pass] No entities found — no skybox to render\n");
-        return;
-    }
-
-    std::printf("[cubemap pass] Found %d cubemap entit%s\n", count, count == 1 ? "y" : "ies");
     cubemap_.bind();
     for (auto e : v) {
-        if (registry.has<Disabled>(e)) {
-            std::printf("[cubemap pass] entity %u is Disabled, skipping\n", e.id);
-            continue;
-        }
+        if (registry.has<Disabled>(e)) continue;
         auto& cm = registry.get<CubeMapComponent>(e);
         auto& r = registry.get<RenderableComponent>(e);
-        if (r.mesh == 0) {
-            std::printf("[cubemap pass] entity %u has mesh=0, skipping\n", e.id);
-            continue;
-        }
-        if (cm.gl_cubemap == 0) {
-            std::printf("[cubemap pass] entity %u cubemap '%s': gl_cubemap=0 (not loaded yet)\n",
-                        e.id, cm.name.c_str());
-        }
+        if (r.mesh == 0) continue;
         Renderable data{r.mesh, cm.gl_cubemap, {{"u_view", view}, {"u_proj", proj}}};
         cubemap_.draw(data);
     }
@@ -169,12 +151,7 @@ void RenderSystem::render_highlight_pass(exd::ecs::Registry& registry,
                                           const math::Mat4& view,
                                           const math::Mat4& proj) {
     auto view_selected = registry.view<Selected, Transform, RenderableComponent>();
-    int count = 0;
-    for (auto e : view_selected) {
-        if (registry.has<Disabled>(e)) continue;
-        count++;
-    }
-    if (count == 0) return;
+    if (view_selected.begin() == view_selected.end()) return;
 
     highlight_.bind(view, proj);
     for (auto e : view_selected) {

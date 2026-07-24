@@ -200,7 +200,7 @@ GizmoAxis GizmoSystem::hit_test(const Ray& ray) {
 std::optional<float> GizmoSystem::hit_arrow(const Ray& ray, float length,
                                                float head_len, float head_r) {
     for (float y = 0.05f; y <= length; y += 0.08f) {
-        float r = (y > length - head_len) ? head_r * 0.6f : 0.06f;
+        float r = (y > length - head_len) ? head_r * 0.8f : 0.12f;
         auto t = interaction::ray_sphere(ray, {0, y, 0}, r);
         if (t) return t;
     }
@@ -212,7 +212,7 @@ std::optional<float> GizmoSystem::hit_ring(const Ray& ray, float radius) {
     for (int i = 0; i < samples; ++i) {
         float a = 2.0f * 3.14159265f * i / samples;
         math::Vec3f pt{std::cos(a) * radius, std::sin(a) * radius, 0};
-        auto t = interaction::ray_sphere(ray, pt, 0.06f);
+        auto t = interaction::ray_sphere(ray, pt, 0.10f);
         if (t) return t;
     }
     return std::nullopt;
