@@ -1,22 +1,20 @@
-/// extropian-render comprehensive demo
+/// extropian-render demo — configuration guide
 ///
-/// Scene: variety of shapes (cubes, spheres, cylinders, cones),
-/// reflective surface, skybox, reference grid.  Full interaction
-/// pipeline: picking, selection, highlight, and all three gizmo modes.
+/// Every interaction feature is an independent system.  To use only a
+/// subset in your own app, simply create only the systems you need:
 ///
-/// ── Controls ─────────────────────────────────────
-///   Tab          toggle FPS camera / UI interaction mode
+///   CameraSystem       ← FPS fly camera (WASD + mouse)
+///   PrimitiveMeshSystem ← generates GPU meshes from shape components
+///   GridSystem         ← reference grid on XZ plane
+///   CubeMapSystem      ← skybox cubemap loading
+///   PolygonModeSystem  ← wireframe toggle
+///   RenderSystem       ← all render passes (lambertian, mirror, highlight, etc.)
+///   PickerSystem       ← CPU raycast picking (needed for selection)
+///   SelectionSystem    ← click-to-select, hover tracking
+///   GizmoSystem        ← translate/rotate/scale gizmo (needs SelectionSystem)
 ///
-///   FPS mode:    WASD fly, mouse look
-///
-///   UI mode:     cursor visible
-///     1/2/3      Translate / Rotate / Scale gizmo
-///     Left-click select entity → orange wireframe highlight
-///     Drag gizmo arrows/rings/boxes to transform selection
-///     Shift+click add/remove from multi-selection
-///     G          toggle reference grid
-///     X          toggle wireframe
-///     Esc        quit
+/// Omit any system and its feature disappears — no dependency chain
+/// forces you to take the whole stack.
 
 #ifndef EXD_ASSETS_DIR
 #define EXD_ASSETS_DIR "../extropian-assets"
@@ -167,18 +165,20 @@ int main() {
     mesh_sys.update(reg, 0.0);
     cubemap_sys.update(reg, 0.0);
 
-    std::printf("\n=== extropian-render demo ===\n");
-    std::printf("Entities: %zu  |  Assets: %s\n",
-                reg.entity_count(), EXD_ASSETS_DIR);
-    std::printf("\nControls:\n");
-    std::printf("  Tab       toggle FPS/UI mode\n");
-    std::printf("  FPS:      WASD fly, mouse look\n");
-    std::printf("  UI:       1/2/3 = Translate/Rotate/Scale gizmo\n");
-    std::printf("            Click = select (orange highlight)\n");
-    std::printf("            Drag gizmo = transform\n");
-    std::printf("  G         toggle grid\n");
-    std::printf("  X         toggle wireframe\n");
-    std::printf("  Esc       quit\n\n");
+    auto print_help = []() {
+        std::printf("\n=== Demo Controls ===\n");
+        std::printf("  Tab        toggle FPS camera / UI mode\n");
+        std::printf("  FPS mode:  WASD fly, mouse look\n");
+        std::printf("  UI mode:   cursor visible, click to select\n");
+        std::printf("  1/2/3      Translate / Rotate / Scale gizmo (both modes)\n");
+        std::printf("  Click      select entity (shift+click = multi-select)\n");
+        std::printf("  Drag gizmo transform selection\n");
+        std::printf("  G          toggle reference grid\n");
+        std::printf("  X          toggle wireframe\n");
+        std::printf("  H          print this help\n");
+        std::printf("  Esc        quit\n\n");
+    };
+    print_help();
 
     // ── Main loop ────────────────────────────────
     uint64_t last = SDL_GetTicks();
@@ -215,6 +215,19 @@ int main() {
             gizmo.set_mode(render::interaction::GizmoMode::Rotate);
         if (window.was_key_released(SDL_SCANCODE_3))
             gizmo.set_mode(render::interaction::GizmoMode::Scale);
+        if (window.was_key_released(SDL_SCANCODE_H))
+            print_help();
+
+        // Update window title with current mode
+        {
+            const char* gm[] = {"Translate","Rotate","Scale"};
+            char title[128];
+            snprintf(title, sizeof(title), "extropian-render — %s | %s gizmo | %s",
+                window.input_mode == app::InputMode::FPS ? "FPS" : "UI",
+                gm[static_cast<int>(gizmo.mode())],
+                window.grid_visible ? "grid ON" : "grid OFF");
+            SDL_SetWindowTitle(window.sdl_window, title);
+        }
 
         // ── UI interaction ───────────────────────
         float mx, my;
