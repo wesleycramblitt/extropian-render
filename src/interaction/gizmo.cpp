@@ -26,7 +26,7 @@ static Mesh make_arrow_mesh() {
     Mesh m;
     float body_top = ARROW_LENGTH - ARROW_HEAD_LEN;
     float body_r = ARROW_BODY_R, head_r = ARROW_HEAD_R;
-    int segs = 16;
+    int segs = 24;
     float step = 2.0f * 3.14159265f / segs;
 
     // Cylinder body
@@ -65,7 +65,7 @@ static Mesh make_arrow_mesh() {
 
 static Mesh make_ring_mesh() {
     Mesh m;
-    int segs = 48, tube_segs = 8;
+    int segs = 64, tube_segs = 10;
     float r = RING_RADIUS, tr = RING_TUBE_R;
     float a_step = 2.0f*3.14159265f/segs, t_step = 2.0f*3.14159265f/tube_segs;
     for (int i = 0; i <= segs; ++i) {
@@ -167,6 +167,8 @@ math::Mat4 GizmoSystem::gizmo_model(const math::Vec3f& pos, float scale) const {
 }
 
 math::Mat4 GizmoSystem::get_axis_rotation(GizmoAxis axis) const {
+    // Arrow rotation: arrow mesh points along +Y.
+    // Rotate to point along the target axis.
     switch (axis) {
         case GizmoAxis::X:
             return math::Mat4::trs({0,0,0},
@@ -175,6 +177,36 @@ math::Mat4 GizmoSystem::get_axis_rotation(GizmoAxis axis) const {
             return math::Mat4::trs({0,0,0},
                 math::Quat::from_axis_angle(X_AXIS, 3.14159265f*0.5f), {1,1,1});
         default: return math::Mat4::identity();
+    }
+}
+
+// Ring rotation: ring mesh is in XY plane (circle around Z).
+// Rotate so the ring wraps around the target axis.
+static math::Mat4 ring_rotation(GizmoAxis axis) {
+    switch (axis) {
+        case GizmoAxis::X:
+            // XY ring → YZ plane: rotate -90° around Y
+            return math::Mat4::trs({0,0,0},
+                math::Quat::from_axis_angle({0,1,0}, -3.14159265f*0.5f), {1,1,1});
+        case GizmoAxis::Z:
+            // XY ring is already around Z — no rotation
+            return math::Mat4::identity();
+        default: // Y axis
+            // XY ring → XZ plane: rotate +90° around X
+            return math::Mat4::trs({0,0,0},
+                math::Quat::from_axis_angle({1,0,0}, 3.14159265f*0.5f), {1,1,1});
+    }
+}
+
+// Inverse ring rotation for hit testing (rotate ray from world to ring-local)
+static math::Quat ring_inv_rotation(GizmoAxis axis) {
+    switch (axis) {
+        case GizmoAxis::X:
+            return math::Quat::from_axis_angle({0,1,0}, 3.14159265f*0.5f);  // +90° around Y
+        case GizmoAxis::Z:
+            return math::Quat{};  // identity
+        default: // Y
+            return math::Quat::from_axis_angle({1,0,0}, -3.14159265f*0.5f); // -90° around X
     }
 }
 
@@ -240,28 +272,14 @@ GizmoAxis GizmoSystem::hit_test(const Ray& ray) {
         }
     }
     if (mode_ == GizmoMode::Rotate) {
-        // Rings are in different planes: X ring in YZ, Y ring in XZ, Z ring in XY.
-        // We rotate the ray by the inverse axis rotation to test each ring's plane.
         GizmoAxis ring_axes[3] = {GizmoAxis::X, GizmoAxis::Y, GizmoAxis::Z};
         float best_t = FLT_MAX;
         GizmoAxis best_ring = GizmoAxis::None;
         for (int i = 0; i < 3; ++i) {
-            // Apply inverse ring rotation to ray so ring is in XY plane
-            math::Mat4 inv_rot = get_axis_rotation(ring_axes[i]);
-            // Inverse of a rotation = transpose. For axis-angle quaternion,
-            // we negate the angle. get_axis_rotation returns a TRS with
-            // quaternion q. Inverse: conjugate quaternion.
-            // Simpler: just build the inverse rotation directly.
-            math::Quat inv_q;
-            switch (ring_axes[i]) {
-                case GizmoAxis::X: inv_q = math::Quat::from_axis_angle(Z_AXIS, 3.14159265f*0.5f); break;  // +90° around Z
-                case GizmoAxis::Z: inv_q = math::Quat::from_axis_angle(X_AXIS, -3.14159265f*0.5f); break; // -90° around X
-                default: inv_q = math::Quat{}; break;  // Y = identity
-            }
-            // Transform ray direction by inverse rotation
+            math::Quat inv_q = ring_inv_rotation(ring_axes[i]);
             math::Vec3f local_dir = inv_q * ray.direction;
             math::Vec3f local_origin = inv_q * ray.origin;
-            interaction::Ray local_ray{local_origin, local_dir.normalized()};
+            interaction::Ray local_ray{local_origin, local_dir};
             auto t = hit_ring(local_ray, RING_RADIUS);
             if (t && *t < best_t) { best_t = *t; best_ring = ring_axes[i]; }
         }
@@ -509,11 +527,14 @@ void GizmoSystem::draw_rotate_gizmo(const math::Mat4& view, const math::Mat4& pr
 
     math::Mat4 base = gizmo_model(pos, scale);
 
-    math::Mat4 xr = math::Mat4::mul(base, get_axis_rotation(GizmoAxis::X));
+    // X ring (red) — ring rotates to YZ plane
+    math::Mat4 xr = math::Mat4::mul(base, ring_rotation(GizmoAxis::X));
     draw_handle(ring_x_, xr, X_COLOR, GizmoAxis::X, GizmoMode::Rotate);
-    draw_handle(ring_y_, base, Y_COLOR, GizmoAxis::Y, GizmoMode::Rotate);
-    math::Mat4 zr = math::Mat4::mul(base, get_axis_rotation(GizmoAxis::Z));
-    draw_handle(ring_z_, zr, Z_COLOR, GizmoAxis::Z, GizmoMode::Rotate);
+    // Y ring (green) — ring rotates to XZ plane
+    math::Mat4 yr = math::Mat4::mul(base, ring_rotation(GizmoAxis::Y));
+    draw_handle(ring_y_, yr, Y_COLOR, GizmoAxis::Y, GizmoMode::Rotate);
+    // Z ring (blue) — ring stays in XY (already around Z)
+    draw_handle(ring_z_, base, Z_COLOR, GizmoAxis::Z, GizmoMode::Rotate);
 
     draw_handle(box_handle_, base, CENTER_COLOR, GizmoAxis::Center, GizmoMode::Rotate);
 }
