@@ -5,29 +5,37 @@
 #include <assimp/scene.h>
 #include <assimp/postprocess.h>
 #include <functional>
-#include <cstdio>
+#include <unordered_map>
 
 namespace exd::render {
 
-// ════════════════════════════════════════════════════════════════════
-// MeshAssetSystem
-// ════════════════════════════════════════════════════════════════════
-
-
 void MeshAssetSystem::update_impl(exd::ecs::Registry& registry) {
-    size_t count = 0;
+    // Path → mesh handle cache so each file is loaded only once
+    std::unordered_map<std::string, uint32_t> loaded;
+
     for (auto e : registry.view<MeshAssetComponent>()) {
-        count++;
         auto& ma = registry.get<MeshAssetComponent>(e);
-        std::printf("[MeshAsset] entity=%u path=%s\n", e.id, ma.path.c_str());
         if (ma.path.empty()) continue;
 
+        // Skip if already assigned a valid mesh
+        if (registry.has<RenderableComponent>(e) &&
+            registry.get<RenderableComponent>(e).mesh != 0)
+            continue;
+
+        // Check cache
+        auto it = loaded.find(ma.path);
+        if (it != loaded.end()) {
+            registry.emplace<RenderableComponent>(e, it->second);
+            continue;
+        }
+
+        // Load via Assimp
         Assimp::Importer importer;
         const aiScene* scene = importer.ReadFile(ma.path,
             aiProcess_Triangulate | aiProcess_GenSmoothNormals |
             aiProcess_JoinIdenticalVertices | aiProcess_ImproveCacheLocality);
         if (!scene) {
-            std::fprintf(stderr, "[MeshAsset] Assimp failed for %s: %s\n",
+            std::fprintf(stderr, "[MeshAsset] Failed: %s — %s\n",
                          ma.path.c_str(), importer.GetErrorString());
             continue;
         }
@@ -57,8 +65,7 @@ void MeshAssetSystem::update_impl(exd::ecs::Registry& registry) {
 
         uint32_t handle = ctx_.mesh_manager.create(mesh);
         registry.emplace<RenderableComponent>(e, handle);
-        std::printf("[MeshAsset] Loaded %s (%zu verts)\n",
-                    ma.path.c_str(), mesh.vertices.size());
+        loaded[ma.path] = handle;
     }
 }
 
