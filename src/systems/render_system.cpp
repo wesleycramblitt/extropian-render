@@ -192,8 +192,8 @@ void RenderSystem::render_highlight_pass(exd::ecs::Registry& registry,
 }
 
 void RenderSystem::update(exd::ecs::Registry& registry, double /*dt*/) {
-    // Clear the framebuffer — swap_buffers no longer does this (v0.2 API).
-    glClearColor(0.15f, 0.15f, 0.15f, 1.0f);
+    glEnable(GL_DEPTH_TEST);
+    glClearColor(clear_r_, clear_g_, clear_b_, clear_a_);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     // Find camera entity
@@ -221,6 +221,10 @@ void RenderSystem::update(exd::ecs::Registry& registry, double /*dt*/) {
     render_particle_pass(registry, view_mat, proj_mat);
     render_volume_pass(registry, view_mat, proj_mat, cam_xform->position);
     render_highlight_pass(registry, view_mat, proj_mat);
+}
+
+void RenderSystem::set_clear_color(float r, float g, float b, float a) {
+    clear_r_ = r; clear_g_ = g; clear_b_ = b; clear_a_ = a;
 }
 
 } // namespace exd::render

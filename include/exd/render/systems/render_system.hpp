@@ -24,6 +24,9 @@ public:
 
     void update(exd::ecs::Registry& registry, double dt);
 
+    /// Set the background clear color (default: dark gray 0.15,0.15,0.15).
+    void set_clear_color(float r, float g, float b, float a = 1.0f);
+
 private:
     void render_cubemap_pass(exd::ecs::Registry&, const math::Mat4& view, const math::Mat4& proj);
     void render_opaque_pass(exd::ecs::Registry&, const math::Mat4& view, const math::Mat4& proj, const math::Vec3f& cam_pos);
@@ -35,6 +38,7 @@ private:
 
     GraphicsContext& ctx_;
     app::WindowState* window_;
+    float clear_r_ = 0.15f, clear_g_ = 0.15f, clear_b_ = 0.15f, clear_a_ = 1.0f;
     CubeMapRenderTechnique cubemap_;
     LambertianTechnique lambertian_;
     ReflectiveTechnique reflective_;
