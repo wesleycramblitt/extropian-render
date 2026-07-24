@@ -1,5 +1,5 @@
 # ── Shaders (needed at runtime by the demo) ─────
-file(COPY ${CMAKE_SOURCE_DIR}/shaders DESTINATION ${CMAKE_BINARY_DIR})
+file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/../shaders DESTINATION ${CMAKE_BINARY_DIR})
 
 # ── Assets ──────────────────────────────────────
 include(FetchContent)

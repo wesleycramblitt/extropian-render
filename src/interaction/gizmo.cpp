@@ -442,13 +442,16 @@ void GizmoSystem::render(ecs::Registry& registry,
 
     float scale = get_gizmo_scale(pos, cam_pos, proj);
     glEnable(GL_DEPTH_TEST);
-    glDepthFunc(GL_LESS);
+    // Gizmo always renders on top — handles must be visible and
+    // clickable even when occluded by the selected object.
+    glDepthFunc(GL_ALWAYS);
 
     switch (mode_) {
         case GizmoMode::Translate: draw_translate_gizmo(view, proj, pos, scale); break;
         case GizmoMode::Rotate:    draw_rotate_gizmo(view, proj, pos, scale);    break;
         case GizmoMode::Scale:     draw_scale_gizmo(view, proj, pos, scale);     break;
     }
+    glDepthFunc(GL_LESS);
     GL_CALL(glUseProgram(0));
 }
 
