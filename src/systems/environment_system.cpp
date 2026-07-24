@@ -1,9 +1,11 @@
 #include <exd/render/systems/environment_system.hpp>
 #include <exd/render/components/environment.hpp>
 #include <exd/render/components/cubemap.hpp>
+#include <exd/render/components/material.hpp>
 #include <exd/render/components/mesh_asset.hpp>
 #include <exd/render/components/render_technique_tags.hpp>
 #include <exd/render/components/transform.hpp>
+#include <exd/math/quat.hpp>
 #include <nlohmann/json.hpp>
 #include <fstream>
 #include <cstdio>
@@ -73,6 +75,11 @@ void EnvironmentSystem::load_impl(const std::string& full_dir, const std::string
         registry_.emplace<MeshAssetComponent>(terr_e, terrain_path);
         registry_.emplace<RenderTechnique_Lambertian>(terr_e);
         registry_.emplace<Transform>(terr_e);
+        if (cfg.contains("terrain_color")) {
+            auto& tc = cfg["terrain_color"];
+            registry_.emplace<Material>(terr_e, math::Quat{
+                tc[3].get<float>(), tc[0].get<float>(), tc[1].get<float>(), tc[2].get<float>()});
+        }
     }
 
     // ── props ─────────────────────────────────────────────────
@@ -86,6 +93,11 @@ void EnvironmentSystem::load_impl(const std::string& full_dir, const std::string
             registry_.emplace<RenderTechnique_Lambertian>(prop_e);
 
             auto& xform = registry_.emplace<Transform>(prop_e);
+            if (cfg.contains("prop_color")) {
+                auto& pc = cfg["prop_color"];
+                registry_.emplace<Material>(prop_e, math::Quat{
+                    pc[3].get<float>(), pc[0].get<float>(), pc[1].get<float>(), pc[2].get<float>()});
+            }
             if (p.contains("position")) {
                 auto& pos = p["position"];
                 xform.position = {pos[0].get<float>(), pos[1].get<float>(), pos[2].get<float>()};
