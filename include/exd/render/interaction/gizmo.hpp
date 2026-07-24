@@ -94,6 +94,7 @@ private:
 
     math::Vec3f drag_origin_{};
     math::Vec3f drag_start_pos_{};
+    math::Vec3f drag_accum_{};   // total drag delta since press (reset on release)
     float last_mouse_x_ = 0.0f;
     float last_mouse_y_ = 0.0f;
 

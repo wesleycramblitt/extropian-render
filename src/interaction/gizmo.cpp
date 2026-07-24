@@ -116,10 +116,10 @@ static Mesh make_plane_mesh() {
     return m;
 }
 
-// Thin cylinder from origin to 0.9 along +Y (for scale axis lines)
+// Thin cylinder from origin to 1.0 along +Y (for scale axis lines)
 static Mesh make_line_mesh() {
     Mesh m;
-    float length = 0.9f, r = 0.012f;
+    float length = 1.0f, r = 0.012f;
     int segs = 12;
     float step = 2.0f * 3.14159265f / segs;
     for (int i = 0; i <= segs; ++i) {
@@ -306,21 +306,20 @@ GizmoAxis GizmoSystem::hit_test(const Ray& ray) {
         if (best_ring != GizmoAxis::None) return best_ring;
     }
     if (mode_ == GizmoMode::Scale) {
-        if (hit_box(ray, BOX_SIZE * 2.0f)) {
-            float best = FLT_MAX;
-            GizmoAxis best_axis = GizmoAxis::None;
-            GizmoAxis axes[3] = {GizmoAxis::X, GizmoAxis::Y, GizmoAxis::Z};
-            math::Vec3f dirs[3] = {X_AXIS, Y_AXIS, Z_AXIS};
-            for (int i = 0; i < 3; ++i) {
-                auto t = interaction::ray_sphere(ray, dirs[i] * 1.0f, 0.18f);
-                if (t && *t < best) { best = *t; best_axis = axes[i]; }
-            }
-            if (best_axis == GizmoAxis::None) {
-                auto t = interaction::ray_sphere(ray, {0,0,0}, 0.20f);
-                if (t) return GizmoAxis::Center;
-            }
-            return best_axis;
+        // Test spheres at box positions along each axis
+        GizmoAxis axes[3] = {GizmoAxis::X, GizmoAxis::Y, GizmoAxis::Z};
+        math::Vec3f dirs[3] = {X_AXIS, Y_AXIS, Z_AXIS};
+        float best = FLT_MAX;
+        GizmoAxis best_axis = GizmoAxis::None;
+        for (int i = 0; i < 3; ++i) {
+            auto t = interaction::ray_sphere(ray, dirs[i] * 1.0f, 0.22f);
+            if (t && *t < best) { best = *t; best_axis = axes[i]; }
         }
+        if (best_axis == GizmoAxis::None) {
+            auto t = interaction::ray_sphere(ray, {0,0,0}, 0.22f);
+            if (t) return GizmoAxis::Center;
+        }
+        return best_axis;
     }
     if (hit_box(ray, BOX_SIZE * 1.5f)) {
         auto t = interaction::ray_sphere(ray, {0,0,0}, 0.18f);
@@ -424,6 +423,7 @@ bool GizmoSystem::on_mouse_press(ecs::Registry& registry,
         last_mouse_x_ = screen_x;
         last_mouse_y_ = screen_y;
         drag_origin_ = gizmo_pos;
+        drag_accum_ = {0,0,0};
         for (auto e : registry.view<Selected, Transform>()) {
             drag_start_pos_ = registry.get<Transform>(e).position;
             break;
@@ -445,15 +445,16 @@ void GizmoSystem::on_mouse_drag(ecs::Registry& registry,
     math::Vec3f delta = drag_delta(cam_pos, cam_forward, cam_up,
                                      fov_y_rad, aspect,
                                      screen_x, screen_y, screen_w, screen_h);
+    drag_accum_ = drag_accum_ + delta;
 
     for (auto e : registry.view<Selected, Transform>()) {
         auto& xform = registry.get<Transform>(e);
         if (mode_ == GizmoMode::Translate) {
             if (active_axis_ == GizmoAxis::Center)
-                xform.position = drag_start_pos_ + delta;
+                xform.position = drag_start_pos_ + drag_accum_;
             else {
                 math::Vec3f axis = axis_direction(active_axis_);
-                xform.position = drag_start_pos_ + axis * delta.dot(axis);
+                xform.position = drag_start_pos_ + axis * drag_accum_.dot(axis);
             }
         } else if (mode_ == GizmoMode::Scale) {
             math::Vec3f axis = active_axis_ == GizmoAxis::Center
@@ -616,11 +617,11 @@ void GizmoSystem::draw_scale_gizmo(const math::Mat4& view, const math::Mat4& pro
     draw_handle(scale_line_, lz, Z_COLOR * 0.7f, GizmoAxis::Z, GizmoMode::Scale);
 
     // Boxes at axis ends
-    math::Mat4 bx = math::Mat4::mul(base, math::Mat4::trs({0.9f*scale,0,0}, math::Quat{}, {1,1,1}));
+    math::Mat4 bx = math::Mat4::mul(base, math::Mat4::trs({1.0f*scale,0,0}, math::Quat{}, {1,1,1}));
     draw_handle(box_handle_, bx, X_COLOR, GizmoAxis::X, GizmoMode::Scale);
-    math::Mat4 by = math::Mat4::mul(base, math::Mat4::trs({0,0.9f*scale,0}, math::Quat{}, {1,1,1}));
+    math::Mat4 by = math::Mat4::mul(base, math::Mat4::trs({0,1.0f*scale,0}, math::Quat{}, {1,1,1}));
     draw_handle(box_handle_, by, Y_COLOR, GizmoAxis::Y, GizmoMode::Scale);
-    math::Mat4 bz = math::Mat4::mul(base, math::Mat4::trs({0,0,0.9f*scale}, math::Quat{}, {1,1,1}));
+    math::Mat4 bz = math::Mat4::mul(base, math::Mat4::trs({0,0,1.0f*scale}, math::Quat{}, {1,1,1}));
     draw_handle(box_handle_, bz, Z_COLOR, GizmoAxis::Z, GizmoMode::Scale);
 
     draw_handle(box_handle_, base, CENTER_COLOR, GizmoAxis::Center, GizmoMode::Scale);
