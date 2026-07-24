@@ -29,6 +29,14 @@ if(NOT TARGET exd::app)
     FetchContent_MakeAvailable(exd-app)
 endif()
 
+if(NOT TARGET exd::geometry)
+    FetchContent_Declare(exd-geometry
+        GIT_REPOSITORY https://github.com/wesleycramblitt/extropian-geometry.git
+        GIT_TAG main
+    )
+    FetchContent_MakeAvailable(exd-geometry)
+endif()
+
 find_package(OpenGL REQUIRED)
 
 find_package(SDL3 CONFIG QUIET)
@@ -44,6 +52,7 @@ add_subdirectory(src)
 add_subdirectory(src/systems)
 add_subdirectory(src/backends)
 add_subdirectory(src/graphics)
+add_subdirectory(src/interaction)
 
 target_include_directories(exd-render PUBLIC "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>")
 target_include_directories(exd-render PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
@@ -58,6 +67,7 @@ target_link_libraries(exd-render PUBLIC
     assimp::assimp
     exd::core
     exd::app
+    exd::geometry
     OpenGL::GL
     SDL3::SDL3
 )
@@ -67,6 +77,23 @@ add_library(exd::render ALIAS exd-render)
 # ── Tests ─────────────────────────────────────────
 include(CTest)
 add_subdirectory(tests)
+
+# ── Demo ──────────────────────────────────────────
+# Pull extropian-assets via FetchContent so the demo always
+# has the latest cubemaps and meshes available.
+if(NOT TARGET exd-assets)
+    FetchContent_Declare(exd-assets
+        GIT_REPOSITORY https://github.com/wesleycramblitt/extropian-assets.git
+        GIT_TAG main
+    )
+    FetchContent_GetProperties(exd-assets)
+    if(NOT exd-assets_POPULATED)
+        FetchContent_Populate(exd-assets)
+    endif()
+    # Not a CMake project — just a directory of assets.
+    set(EXD_ASSETS_DIR "${exd-assets_SOURCE_DIR}" CACHE INTERNAL "")
+endif()
+add_subdirectory(demo)
 
 #include(GNUInstallDirs)
 #install(TARGETS exd-render EXPORT exd-render-targets ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR})

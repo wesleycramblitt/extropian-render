@@ -19,6 +19,8 @@ add_executable(test-render-unit
     test_components.cpp
     test_render_graph.cpp
     test_ecs_systems.cpp
+    test_ray.cpp
+    test_selection.cpp
 )
 target_include_directories(test-render-unit PRIVATE ${DOCTEST_DIR})
 target_link_libraries(test-render-unit PRIVATE exd::render)
@@ -29,6 +31,7 @@ add_executable(test-render-gl
     test_main.cpp
     test_techniques.cpp
     test_window.cpp
+    test_interaction.cpp
 )
 target_include_directories(test-render-gl PRIVATE ${DOCTEST_DIR})
 target_link_libraries(test-render-gl PRIVATE exd::render)

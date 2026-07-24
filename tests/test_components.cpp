@@ -47,9 +47,9 @@ TEST_CASE("CameraComponent default values") {
 
 TEST_CASE("CameraController default values") {
     CameraController cc;
-    CHECK(near(cc.move_speed,        30.0f));
+    CHECK(near(cc.move_speed,        1.0f));
     CHECK(near(cc.sprint_mult,       2.0f));
-    CHECK(near(cc.mouse_sensitivity, 0.002f));
+    CHECK(near(cc.mouse_sensitivity, 0.0002f));
     CHECK(near(cc.yaw,               0.0f));
     CHECK(near(cc.pitch,             0.0f));
 }

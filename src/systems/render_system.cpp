@@ -5,6 +5,7 @@
 #include <exd/render/components/particle_cloud.hpp>
 #include <exd/render/components/render_technique_tags.hpp>
 #include <exd/render/components/renderable.hpp>
+#include <exd/render/components/selected.hpp>
 #include <exd/render/components/simulation_domain.hpp>
 #include <exd/render/components/simulation_reference.hpp>
 #include <exd/render/components/skew.hpp>
@@ -160,6 +161,33 @@ void RenderSystem::render_volume_pass(exd::ecs::Registry& registry,
     volume_.unbind();
 }
 
+// ════════════════════════════════════════════════════════════════════
+// Highlight pass — wireframe overlay on selected entities
+// ════════════════════════════════════════════════════════════════════
+
+void RenderSystem::render_highlight_pass(exd::ecs::Registry& registry,
+                                          const math::Mat4& view,
+                                          const math::Mat4& proj) {
+    auto view_selected = registry.view<Selected, Transform, RenderableComponent>();
+    int count = 0;
+    for (auto e : view_selected) {
+        if (registry.has<Disabled>(e)) continue;
+        count++;
+    }
+    if (count == 0) return;
+
+    highlight_.bind(view, proj);
+    for (auto e : view_selected) {
+        if (registry.has<Disabled>(e)) continue;
+        auto& rc = registry.get<RenderableComponent>(e);
+        if (rc.mesh == 0) continue;
+
+        math::Mat4 model = compute_model(registry, e);
+        highlight_.draw(rc.mesh, model);
+    }
+    highlight_.unbind();
+}
+
 void RenderSystem::update(exd::ecs::Registry& registry, double /*dt*/) {
     // Find camera entity
     const Transform* cam_xform = nullptr;
@@ -185,6 +213,7 @@ void RenderSystem::update(exd::ecs::Registry& registry, double /*dt*/) {
     render_reflective_pass(registry, view_mat, proj_mat, cam_xform->position);
     render_particle_pass(registry, view_mat, proj_mat);
     render_volume_pass(registry, view_mat, proj_mat, cam_xform->position);
+    render_highlight_pass(registry, view_mat, proj_mat);
 }
 
 } // namespace exd::render

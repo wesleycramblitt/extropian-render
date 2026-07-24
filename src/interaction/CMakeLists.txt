@@ -1,0 +1,6 @@
+
+file(GLOB MODULE_SOURCES CONFIGURE_DEPENDS
+    "${CMAKE_CURRENT_LIST_DIR}/*.cpp"
+)
+
+target_sources(exd-render PRIVATE ${MODULE_SOURCES})

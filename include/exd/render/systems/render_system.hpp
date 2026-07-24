@@ -8,6 +8,7 @@
 #include <exd/render/graphics/techniques/cubemap_technique.hpp>
 #include <exd/render/graphics/techniques/particle_technique.hpp>
 #include <exd/render/graphics/techniques/volume_technique.hpp>
+#include <exd/render/graphics/techniques/highlight_technique.hpp>
 #include <exd/math/mat4.hpp>
 
 namespace exd::render {
@@ -17,7 +18,8 @@ class RenderSystem {
 public:
     RenderSystem(GraphicsContext& ctx, app::WindowState* win)
         : ctx_(ctx), window_(win), cubemap_(ctx), lambertian_(ctx),
-          reflective_(ctx), particles_(ctx), volume_(ctx) {}
+          reflective_(ctx), particles_(ctx), volume_(ctx),
+          highlight_(ctx) {}
     ~RenderSystem() = default;
 
     void update(exd::ecs::Registry& registry, double dt);
@@ -28,6 +30,7 @@ private:
     void render_reflective_pass(exd::ecs::Registry&, const math::Mat4& view, const math::Mat4& proj, const math::Vec3f& cam_pos);
     void render_particle_pass(exd::ecs::Registry&, const math::Mat4& view, const math::Mat4& proj);
     void render_volume_pass(exd::ecs::Registry&, const math::Mat4& view, const math::Mat4& proj, const math::Vec3f& cam_pos);
+    void render_highlight_pass(exd::ecs::Registry&, const math::Mat4& view, const math::Mat4& proj);
     static math::Mat4 compute_model(exd::ecs::Registry&, exd::ecs::Entity e);
 
     GraphicsContext& ctx_;
@@ -37,6 +40,7 @@ private:
     ReflectiveTechnique reflective_;
     ParticleRenderTechnique particles_;
     VolumeRenderTechnique volume_;
+    HighlightTechnique highlight_;
 };
 
 } // namespace exd::render
