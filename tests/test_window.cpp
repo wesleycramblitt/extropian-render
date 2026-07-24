@@ -23,8 +23,8 @@ TEST_CASE("Window creates valid SDL window and GL context") {
     app::Window win;
 
     // After construction, SDL should be initialized and window open
-    CHECK(win.native_window() != nullptr);
-    CHECK(win.native_context() != nullptr);
+    CHECK(win.sdl_window != nullptr);
+    CHECK(win.gl_context != nullptr);
 
     int w, h; float aspect;
     win.get_dimensions(w, h, aspect);
@@ -51,7 +51,7 @@ TEST_CASE("Window default state values") {
     CHECK(win.wireframe == false);
 
     // Should not be closing yet
-    CHECK(win.should_close() == false);
+    CHECK(win.should_close == false);
 }
 
 TEST_CASE("Window input mode toggle") {
