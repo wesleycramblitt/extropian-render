@@ -98,6 +98,7 @@ private:
     uint32_t ring_x_ = 0, ring_y_ = 0, ring_z_ = 0;
     uint32_t box_handle_ = 0;
     uint32_t plane_xy_ = 0, plane_xz_ = 0, plane_yz_ = 0;
+    uint32_t scale_line_ = 0;
     bool geometry_ready_ = false;
 
     static constexpr math::Vec3f X_COLOR{1.0f, 0.2f, 0.2f};

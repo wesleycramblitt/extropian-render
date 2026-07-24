@@ -116,6 +116,25 @@ static Mesh make_plane_mesh() {
     return m;
 }
 
+// Thin cylinder from origin to 0.9 along +Y (for scale axis lines)
+static Mesh make_line_mesh() {
+    Mesh m;
+    float length = 0.9f, r = 0.012f;
+    int segs = 12;
+    float step = 2.0f * 3.14159265f / segs;
+    for (int i = 0; i <= segs; ++i) {
+        float a = i * step;
+        float x = std::cos(a) * r, z = std::sin(a) * r;
+        m.vertices.push_back({{x, 0, z}});
+        m.vertices.push_back({{x, length, z}});
+    }
+    for (int i = 0; i < segs; ++i) {
+        uint32_t b0 = i*2, b1 = i*2+1, t0 = (i+1)*2, t1 = (i+1)*2+1;
+        m.indices.insert(m.indices.end(), {b0,b1,t0, t0,b1,t1});
+    }
+    return m;
+}
+
 // ── Geometry upload ───────────────────────────────
 
 void GizmoSystem::ensure_geometry() {
@@ -136,6 +155,7 @@ void GizmoSystem::ensure_geometry() {
     plane_xy_   = upload_mesh(make_plane_mesh());
     plane_xz_ = plane_xy_;
     plane_yz_ = plane_xy_;
+    scale_line_ = upload_mesh(make_line_mesh());
 }
 
 uint32_t GizmoSystem::upload_mesh(const Mesh& m) {
@@ -548,6 +568,14 @@ void GizmoSystem::draw_scale_gizmo(const math::Mat4& view, const math::Mat4& pro
 
     math::Mat4 base = gizmo_model(pos, scale);
 
+    // Thin lines along each axis
+    math::Mat4 lx = math::Mat4::mul(base, get_axis_rotation(GizmoAxis::X));
+    draw_handle(scale_line_, lx, X_COLOR * 0.7f, GizmoAxis::X, GizmoMode::Scale);
+    draw_handle(scale_line_, base, Y_COLOR * 0.7f, GizmoAxis::Y, GizmoMode::Scale);
+    math::Mat4 lz = math::Mat4::mul(base, get_axis_rotation(GizmoAxis::Z));
+    draw_handle(scale_line_, lz, Z_COLOR * 0.7f, GizmoAxis::Z, GizmoMode::Scale);
+
+    // Boxes at axis ends
     math::Mat4 bx = math::Mat4::mul(base, math::Mat4::trs({0.9f*scale,0,0}, math::Quat{}, {1,1,1}));
     draw_handle(box_handle_, bx, X_COLOR, GizmoAxis::X, GizmoMode::Scale);
     math::Mat4 by = math::Mat4::mul(base, math::Mat4::trs({0,0.9f*scale,0}, math::Quat{}, {1,1,1}));
