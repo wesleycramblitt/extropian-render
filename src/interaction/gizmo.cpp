@@ -246,26 +246,32 @@ math::Vec3f GizmoSystem::axis_direction(GizmoAxis axis) const {
 
 GizmoAxis GizmoSystem::hit_test(const Ray& ray) {
     if (mode_ == GizmoMode::Translate) {
-        if (hit_arrow(ray, ARROW_LENGTH, ARROW_HEAD_LEN, ARROW_HEAD_R)) {
-            float best = FLT_MAX;
-            GizmoAxis best_axis = GizmoAxis::None;
-            auto test_axis = [&](GizmoAxis a, math::Vec3f dir) {
-                float a_dir_dot = ray.direction.dot(dir);
-                float t = -(ray.origin.dot(dir)) / std::max(std::fabs(a_dir_dot), 1e-7f);
-                if (t > 0 && t < best) {
-                    math::Vec3f pt = ray.point_at(t);
-                    float axis_t = pt.dot(dir);
-                    if (axis_t > 0 && axis_t < ARROW_LENGTH * 1.2f) {
-                        float dist = (pt - dir * axis_t).length();
-                        if (dist < 0.20f) { best = t; best_axis = a; }
-                    }
+        // Test each axis arrow independently with correct axis direction
+        float best_t = FLT_MAX;
+        GizmoAxis best_axis = GizmoAxis::None;
+
+        struct { GizmoAxis axis; math::Vec3f dir; } axes[3] = {
+            {GizmoAxis::X, X_AXIS}, {GizmoAxis::Y, Y_AXIS}, {GizmoAxis::Z, Z_AXIS}
+        };
+        for (const auto& a : axes) {
+            auto arrow_t = hit_arrow(ray, ARROW_LENGTH, ARROW_HEAD_LEN, ARROW_HEAD_R, a.dir);
+            if (!arrow_t) continue;
+
+            // Narrow phase: project onto the axis plane through origin
+            float a_dir_dot = ray.direction.dot(a.dir);
+            float plane_t = -(ray.origin.dot(a.dir)) / std::max(std::fabs(a_dir_dot), 1e-7f);
+            if (plane_t > 0 && plane_t < best_t) {
+                math::Vec3f pt = ray.point_at(plane_t);
+                float axis_t = pt.dot(a.dir);
+                if (axis_t > 0 && axis_t < ARROW_LENGTH * 1.2f) {
+                    float dist = (pt - a.dir * axis_t).length();
+                    if (dist < 0.20f) { best_t = plane_t; best_axis = a.axis; }
                 }
-            };
-            test_axis(GizmoAxis::X, X_AXIS);
-            test_axis(GizmoAxis::Y, Y_AXIS);
-            test_axis(GizmoAxis::Z, Z_AXIS);
-            return best_axis;
+            }
         }
+        if (best_axis != GizmoAxis::None) return best_axis;
+
+        // Plane handles and center box detection
         if (hit_box(ray, PLANE_SIZE * 2.0f)) {
             math::Vec3f plane_centers[3] = {
                 {PLANE_SIZE*0.5f, PLANE_SIZE*0.5f, 0},
@@ -329,10 +335,11 @@ GizmoAxis GizmoSystem::hit_test(const Ray& ray) {
 }
 
 std::optional<float> GizmoSystem::hit_arrow(const Ray& ray, float length,
-                                               float head_len, float head_r) {
-    for (float y = 0.05f; y <= length; y += 0.08f) {
-        float r = (y > length - head_len) ? head_r * 1.0f : 0.20f;
-        auto t = interaction::ray_sphere(ray, {0, y, 0}, r);
+                                               float head_len, float head_r,
+                                               const math::Vec3f& axis_dir) {
+    for (float d = 0.05f; d <= length; d += 0.08f) {
+        float r = (d > length - head_len) ? head_r * 1.0f : 0.20f;
+        auto t = interaction::ray_sphere(ray, axis_dir * d, r);
         if (t) return t;
     }
     return std::nullopt;
@@ -375,7 +382,10 @@ GizmoAxis GizmoSystem::hit_test_screen(ecs::Registry& registry,
     math::Vec3f local_origin{(world_ray.origin.x - gizmo_pos.x) / scale,
                              (world_ray.origin.y - gizmo_pos.y) / scale,
                              (world_ray.origin.z - gizmo_pos.z) / scale};
-    math::Vec3f local_dir = world_ray.direction;
+    math::Vec3f local_dir = world_ray.direction / scale;
+    float len = local_dir.length();
+    if (len < 1e-7f) return GizmoAxis::None;
+    local_dir = local_dir / len;
     interaction::Ray local_ray{local_origin, local_dir};
 
     return hit_test(local_ray);

@@ -64,7 +64,7 @@ private:
                               const math::Vec3f& cam_pos, const math::Vec3f& cam_forward,
                               const math::Vec3f& cam_up, float fov_y_rad, float aspect,
                               float screen_x, float screen_y, float screen_w, float screen_h);
-    std::optional<float> hit_arrow(const Ray& ray, float length, float head_len, float head_r);
+    std::optional<float> hit_arrow(const Ray& ray, float length, float head_len, float head_r, const math::Vec3f& axis_dir);
     std::optional<float> hit_ring(const Ray& ray, float radius);
     std::optional<float> hit_box(const Ray& ray, float size);
 
