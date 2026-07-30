@@ -2,7 +2,8 @@
 #include <exd/render/components/camera_component.hpp>
 #include <exd/render/components/camera_controller.hpp>
 #include <exd/render/components/transform.hpp>
-#include <exd/app/input_mode.hpp>
+#include <exd/ecs/view.hpp>
+#include <exd/core/window_state.hpp>
 #include <exd/core/macros.hpp>
 #include <SDL3/SDL.h>
 #include <algorithm>
@@ -15,7 +16,7 @@ namespace exd::render {
 
 void CameraSystem::update(exd::ecs::Registry& registry, double dt) {
     using namespace exd::math;
-    using exd::app::InputMode;
+    using exd::core::InputMode;
     if (window_->input_mode != InputMode::FPS) return;
     if (!window_->keyboard_state) return;
 
@@ -53,8 +54,10 @@ void CameraSystem::update(exd::ecs::Registry& registry, double dt) {
 
         break;
     }
+#ifndef __EMSCRIPTEN__
     window_->mouse_rel_x = 0;
     window_->mouse_rel_y = 0;
+#endif
 }
 
 } // namespace exd::render

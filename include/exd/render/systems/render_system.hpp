@@ -1,7 +1,7 @@
 #pragma once
 
 #include <exd/ecs/registry.hpp>
-#include <exd/app/window_state.hpp>
+#include <exd/core/window_state.hpp>
 #include <exd/render/graphics/graphics_context.hpp>
 #include <exd/render/graphics/techniques/lambertian_technique.hpp>
 #include <exd/render/graphics/techniques/reflective_technique.hpp>
@@ -16,7 +16,7 @@ namespace exd::render {
 /// Main rendering orchestrator — dispatches to all render passes.
 class RenderSystem {
 public:
-    RenderSystem(GraphicsContext& ctx, app::WindowState* win)
+    RenderSystem(GraphicsContext& ctx, core::WindowState* win)
         : ctx_(ctx), window_(win), cubemap_(ctx), lambertian_(ctx),
           reflective_(ctx), particles_(ctx), volume_(ctx),
           highlight_(ctx) {}
@@ -37,7 +37,7 @@ private:
     static math::Mat4 compute_model(exd::ecs::Registry&, exd::ecs::Entity e);
 
     GraphicsContext& ctx_;
-    app::WindowState* window_;
+    core::WindowState* window_;
     float clear_r_ = 0.15f, clear_g_ = 0.15f, clear_b_ = 0.15f, clear_a_ = 1.0f;
     CubeMapRenderTechnique cubemap_;
     LambertianTechnique lambertian_;

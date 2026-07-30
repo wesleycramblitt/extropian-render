@@ -1,6 +1,7 @@
 #include <exd/render/systems/mesh_asset_system.hpp>
 #include <exd/render/components/mesh_asset.hpp>
 #include <exd/render/components/renderable.hpp>
+#include <exd/ecs/view.hpp>
 #include <assimp/Importer.hpp>
 #include <assimp/scene.h>
 #include <assimp/postprocess.h>

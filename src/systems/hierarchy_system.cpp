@@ -3,6 +3,7 @@
 #include <exd/render/systems/hierarchy_system.hpp>
 #include <exd/render/components/parent.hpp>
 #include <exd/render/components/children.hpp>
+#include <exd/ecs/view.hpp>
 
 namespace exd::render {
 

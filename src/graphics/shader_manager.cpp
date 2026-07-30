@@ -48,7 +48,18 @@ std::string ShaderManager::read_text_file(const std::string& path) {
     if (!f.is_open()) throw std::runtime_error("Failed to open shader file: " + path);
     std::stringstream ss;
     ss << f.rdbuf();
-    return ss.str();
+    auto source = ss.str();
+
+#ifdef __EMSCRIPTEN__
+    // Patch GLSL version: 330 core / 460 core → 300 es for WebGL 2.0
+    if (source.starts_with("#version 330 core")) {
+        source.replace(0, 17, "#version 300 es");
+    } else if (source.starts_with("#version 460 core")) {
+        source.replace(0, 17, "#version 300 es");
+    }
+#endif
+
+    return source;
 }
 
 GLuint ShaderManager::compile_shader(GLenum stage, const std::string& source, const std::string& debug_name) {

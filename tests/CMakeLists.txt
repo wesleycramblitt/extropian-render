@@ -36,7 +36,7 @@ add_executable(test-render-gl
     test_interaction.cpp
 )
 target_include_directories(test-render-gl PRIVATE ${DOCTEST_DIR})
-target_link_libraries(test-render-gl PRIVATE exd::render)
+target_link_libraries(test-render-gl PRIVATE exd::render exd::app)
 target_compile_features(test-render-gl PRIVATE cxx_std_23)
 
 # ── CTest registration ───────────────────────────

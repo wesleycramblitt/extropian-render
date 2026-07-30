@@ -7,6 +7,7 @@
 #include <exd/render/components/cube.hpp>
 #include <exd/render/components/renderable.hpp>
 #include <exd/render/components/disabled.hpp>
+#include <exd/ecs/view.hpp>
 #include <exd/render/components/mesh_asset.hpp>
 #include <exd/render/components/grid.hpp>
 #include <exd/render/components/cubemap.hpp>

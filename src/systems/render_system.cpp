@@ -12,6 +12,7 @@
 #include <exd/render/components/simulation_reference.hpp>
 #include <exd/render/components/skew.hpp>
 #include <exd/render/components/transform.hpp>
+#include <exd/ecs/view.hpp>
 #include <exd/render/components/volume_field.hpp>
 
 namespace exd::render {

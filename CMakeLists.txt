@@ -13,6 +13,14 @@ include(FetchContent)
 # which is rejected by CMake >= 4.0 unless we set this policy.
 set(CMAKE_POLICY_VERSION_MINIMUM 3.5 CACHE STRING "")
 
+# ── Platform detection ─────────────────────────────────────
+if(EMSCRIPTEN)
+    message(STATUS "Target: WebGL (Emscripten)")
+    set(EXD_PLATFORM_WEBGL ON)
+else()
+    message(STATUS "Target: Desktop (${CMAKE_SYSTEM_NAME})")
+endif()
+
 if(NOT TARGET exd::core)
     FetchContent_Declare(exd-core
         GIT_REPOSITORY https://github.com/wesleycramblitt/extropian-core.git
@@ -29,13 +37,17 @@ if(NOT TARGET exd::app)
     FetchContent_MakeAvailable(exd-app)
 endif()
 
-find_package(OpenGL REQUIRED)
+if(NOT EMSCRIPTEN)
+    find_package(OpenGL REQUIRED)
+endif()
 
-find_package(SDL3 CONFIG QUIET)
-if(NOT SDL3_FOUND)
-    include(FetchContent)
-    FetchContent_Declare(SDL3 GIT_REPOSITORY https://github.com/libsdl-org/SDL.git GIT_TAG release-3.2.18)
-    FetchContent_MakeAvailable(SDL3)
+if(NOT EMSCRIPTEN)
+    find_package(SDL3 CONFIG QUIET)
+    if(NOT SDL3_FOUND)
+        include(FetchContent)
+        FetchContent_Declare(SDL3 GIT_REPOSITORY https://github.com/libsdl-org/SDL.git GIT_TAG release-3.2.18)
+        FetchContent_MakeAvailable(SDL3)
+    endif()
 endif()
 
 # nlohmann/json — header-only JSON parser for environment configs
@@ -63,16 +75,28 @@ target_include_directories(exd-render PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/extern
 
 # GLAD — vendored pre-generated OpenGL 4.6 Core loader (external/glad/)
 target_include_directories(exd-render PUBLIC "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/external/include>")
-target_sources(exd-render PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/external/src/gl.c)
+if(NOT EMSCRIPTEN)
+    target_sources(exd-render PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/external/src/gl.c)
+else()
+    message(STATUS "Emscripten: using native GLES3, skipping GLAD loader")
+endif()
 
 target_link_libraries(exd-render PUBLIC
     assimp::assimp
     nlohmann_json::nlohmann_json
     exd::core
-    exd::app
-    OpenGL::GL
-    SDL3::SDL3
 )
+
+if(NOT EMSCRIPTEN)
+    target_link_libraries(exd-render PUBLIC
+        OpenGL::GL
+        SDL3::SDL3
+    )
+else()
+    message(STATUS "Emscripten: GLES3 is native, no SDL3 (browser handles input)")
+    target_compile_options(exd-render PUBLIC "-sUSE_WEBGL2=1" "-sFULL_ES3=1")
+    target_link_options(  exd-render PUBLIC "-sUSE_WEBGL2=1" "-sFULL_ES3=1")
+endif()
 
 add_library(exd::render ALIAS exd-render)
 

@@ -2,6 +2,7 @@
 #include <exd/render/components/selected.hpp>
 #include <exd/render/components/hovered.hpp>
 #include <exd/render/components/disabled.hpp>
+#include <exd/ecs/view.hpp>
 #include <vector>
 
 namespace exd::render {

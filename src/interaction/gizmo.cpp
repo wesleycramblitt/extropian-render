@@ -2,6 +2,7 @@
 #include <exd/render/components/transform.hpp>
 #include <exd/render/components/selected.hpp>
 #include <exd/core/macros.hpp>
+#include <exd/ecs/view.hpp>
 
 #include <cmath>
 #include <algorithm>

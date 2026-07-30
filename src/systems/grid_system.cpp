@@ -3,6 +3,7 @@
 #include <exd/render/components/transform.hpp>
 #include <exd/render/components/disabled.hpp>
 #include <exd/render/components/renderable.hpp>
+#include <exd/ecs/view.hpp>
 
 namespace exd::render {
 

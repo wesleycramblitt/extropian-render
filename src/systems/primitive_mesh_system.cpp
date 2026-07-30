@@ -1,6 +1,7 @@
 #include <exd/render/systems/primitive_mesh_system.hpp>
 #include <exd/render/components/cube.hpp>
 #include <exd/render/components/renderable.hpp>
+#include <exd/ecs/view.hpp>
 
 namespace exd::render {
 

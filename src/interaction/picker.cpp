@@ -3,6 +3,7 @@
 #include <exd/render/components/renderable.hpp>
 #include <exd/render/components/disabled.hpp>
 #include <exd/render/graphics/mesh.hpp>
+#include <exd/ecs/view.hpp>
 #include <limits>
 #include <cmath>
 

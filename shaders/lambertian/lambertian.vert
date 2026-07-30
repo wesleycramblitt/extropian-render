@@ -1,1 +1,0 @@
-../opengl/lambertian/lambertian.vert

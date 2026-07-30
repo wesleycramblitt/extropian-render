@@ -2,6 +2,7 @@
 #include <exd/render/components/cubemap.hpp>
 #include <exd/render/components/renderable.hpp>
 #include <exd/render/graphics/cubemap_texture.hpp>
+#include <exd/ecs/view.hpp>
 #include <glad/gl.h>
 #include <cstdio>
 

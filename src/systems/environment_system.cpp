@@ -5,6 +5,7 @@
 #include <exd/render/components/mesh_asset.hpp>
 #include <exd/render/components/render_technique_tags.hpp>
 #include <exd/render/components/transform.hpp>
+#include <exd/ecs/view.hpp>
 #include <exd/math/quat.hpp>
 #include <nlohmann/json.hpp>
 #include <fstream>

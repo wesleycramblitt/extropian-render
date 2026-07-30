@@ -23,6 +23,7 @@
 #include <exd/app/window.hpp>
 #include <exd/app/input_mode.hpp>
 #include <exd/ecs/registry.hpp>
+#include <exd/ecs/view.hpp>
 #include <exd/render/graphics/graphics_context.hpp>
 #include <exd/render/systems/render_system.hpp>
 #include <exd/render/systems/camera_system.hpp>
