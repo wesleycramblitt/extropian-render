@@ -2,7 +2,7 @@
 
 #include <string>
 #include <cstdint>
-#include <glad/gl.h>
+#include <exd/render/graphics/gl_loader.hpp>
 
 namespace exd::render {
 

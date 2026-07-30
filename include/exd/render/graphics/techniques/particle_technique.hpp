@@ -2,7 +2,7 @@
 
 #include <exd/render/graphics/graphics_context.hpp>
 #include <exd/render/graphics/draw_data.hpp>
-#include <glad/gl.h>
+#include <exd/render/graphics/gl_loader.hpp>
 
 namespace exd::render {
 

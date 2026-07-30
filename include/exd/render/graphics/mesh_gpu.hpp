@@ -2,7 +2,7 @@
 
 #include <exd/render/graphics/mesh.hpp>
 #include <exd/core/macros.hpp>
-#include <glad/gl.h>
+#include <exd/render/graphics/gl_loader.hpp>
 #include <vector>
 #include <cstdint>
 #include <cstddef>

@@ -45,7 +45,7 @@
 #include <exd/render/components/selected.hpp>
 #include <exd/geometry/primitives3d.hpp>
 #include <SDL3/SDL.h>
-#include <glad/gl.h>
+#include <exd/render/graphics/gl_loader.hpp>
 #include <cstdio>
 
 using namespace exd;

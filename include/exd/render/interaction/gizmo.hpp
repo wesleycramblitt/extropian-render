@@ -6,7 +6,7 @@
 #include <exd/render/interaction/ray.hpp>
 #include <exd/math/mat4.hpp>
 #include <exd/math/vec3.hpp>
-#include <glad/gl.h>
+#include <exd/render/graphics/gl_loader.hpp>
 #include <cstdint>
 #include <optional>
 

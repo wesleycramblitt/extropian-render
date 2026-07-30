@@ -1,9 +1,7 @@
 #include <exd/render/systems/polygon_mode_system.hpp>
 #include <exd/core/macros.hpp>
 #include <SDL3/SDL.h>
-#ifndef __EMSCRIPTEN__
-#include <glad/gl.h>
-#endif
+#include <exd/render/graphics/gl_loader.hpp>
 
 namespace exd::render {
 

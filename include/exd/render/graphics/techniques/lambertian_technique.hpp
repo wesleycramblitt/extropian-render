@@ -4,7 +4,7 @@
 #include <exd/render/graphics/draw_data.hpp>
 #include <exd/render/components/material.hpp>
 #include <exd/math/vec3.hpp>
-#include <glad/gl.h>
+#include <exd/render/graphics/gl_loader.hpp>
 #include <cstdint>
 
 namespace exd::render {

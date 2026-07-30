@@ -5,7 +5,9 @@
 #include <exd/ecs/view.hpp>
 #include <exd/core/window_state.hpp>
 #include <exd/core/macros.hpp>
+#ifndef __EMSCRIPTEN__
 #include <SDL3/SDL.h>
+#endif
 #include <algorithm>
 
 namespace exd::render {
@@ -15,6 +17,7 @@ namespace exd::render {
 // ════════════════════════════════════════════════════════════════════
 
 void CameraSystem::update(exd::ecs::Registry& registry, double dt) {
+#ifndef __EMSCRIPTEN__
     using namespace exd::math;
     using exd::core::InputMode;
     if (window_->input_mode != InputMode::FPS) return;
@@ -54,9 +57,10 @@ void CameraSystem::update(exd::ecs::Registry& registry, double dt) {
 
         break;
     }
-#ifndef __EMSCRIPTEN__
     window_->mouse_rel_x = 0;
     window_->mouse_rel_y = 0;
+#else
+    (void)registry; (void)dt;
 #endif
 }
 

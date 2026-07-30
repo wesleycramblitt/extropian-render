@@ -2,7 +2,7 @@
 
 #include <string>
 #include <unordered_map>
-#include <glad/gl.h>
+#include <exd/render/graphics/gl_loader.hpp>
 #include <cstdint>
 
 namespace exd::render {

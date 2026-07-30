@@ -2,7 +2,7 @@
 #include "test_common.hpp"
 
 #include <SDL3/SDL.h>
-#include <glad/gl.h>
+#include <exd/render/graphics/gl_loader.hpp>
 
 #include <exd/render/interaction/picker.hpp>
 #include <exd/render/interaction/selection.hpp>

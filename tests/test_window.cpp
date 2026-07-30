@@ -6,7 +6,7 @@
 #include <exd/app/window_state.hpp>
 
 #include <SDL3/SDL.h>
-#include <glad/gl.h>
+#include <exd/render/graphics/gl_loader.hpp>
 
 using namespace exd;
 using namespace exd::render;

@@ -101,11 +101,17 @@ endif()
 add_library(exd::render ALIAS exd-render)
 
 # ── Tests ─────────────────────────────────────────
-include(CTest)
-add_subdirectory(tests)
+option(EXD_RENDER_BUILD_TESTS "Build render tests" ON)
+if(EXD_RENDER_BUILD_TESTS)
+    include(CTest)
+    add_subdirectory(tests)
+endif()
 
 # ── Demo ──────────────────────────────────────────
-add_subdirectory(demo)
+option(EXD_RENDER_BUILD_DEMO "Build render demo application" ON)
+if(EXD_RENDER_BUILD_DEMO)
+    add_subdirectory(demo)
+endif()
 
 #include(GNUInstallDirs)
 #install(TARGETS exd-render EXPORT exd-render-targets ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR})
