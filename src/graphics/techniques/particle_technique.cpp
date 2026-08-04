@@ -47,7 +47,9 @@ void ParticleRenderTechnique::bind() {
         "shaders/opengl/particle/particle.vert",
         "shaders/opengl/particle/particle.frag");
     GL_CALL(glUseProgram(program_));
+#ifndef __EMSCRIPTEN__
     GL_CALL(glEnable(GL_PROGRAM_POINT_SIZE));
+#endif
 }
 
 void ParticleRenderTechnique::draw(const ParticleDrawData& data) {

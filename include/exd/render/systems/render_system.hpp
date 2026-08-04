@@ -6,6 +6,7 @@
 #include <exd/render/graphics/techniques/lambertian_technique.hpp>
 #include <exd/render/graphics/techniques/reflective_technique.hpp>
 #include <exd/render/graphics/techniques/cubemap_technique.hpp>
+#include <exd/render/graphics/techniques/equirect_technique.hpp>
 #include <exd/render/graphics/techniques/particle_technique.hpp>
 #include <exd/render/graphics/techniques/volume_technique.hpp>
 #include <exd/render/graphics/techniques/highlight_technique.hpp>
@@ -17,7 +18,8 @@ namespace exd::render {
 class RenderSystem {
 public:
     RenderSystem(GraphicsContext& ctx, core::WindowState* win)
-        : ctx_(ctx), window_(win), cubemap_(ctx), lambertian_(ctx),
+        : ctx_(ctx), window_(win), cubemap_(ctx), equirect_(ctx),
+          lambertian_(ctx),
           reflective_(ctx), particles_(ctx), volume_(ctx),
           highlight_(ctx) {}
     ~RenderSystem() = default;
@@ -29,6 +31,7 @@ public:
 
 private:
     void render_cubemap_pass(exd::ecs::Registry&, const math::Mat4& view, const math::Mat4& proj);
+    void render_equirect_pass(exd::ecs::Registry&, const math::Mat4& view, const math::Mat4& proj);
     void render_opaque_pass(exd::ecs::Registry&, const math::Mat4& view, const math::Mat4& proj, const math::Vec3f& cam_pos);
     void render_reflective_pass(exd::ecs::Registry&, const math::Mat4& view, const math::Mat4& proj, const math::Vec3f& cam_pos);
     void render_particle_pass(exd::ecs::Registry&, const math::Mat4& view, const math::Mat4& proj);
@@ -40,6 +43,7 @@ private:
     core::WindowState* window_;
     float clear_r_ = 0.15f, clear_g_ = 0.15f, clear_b_ = 0.15f, clear_a_ = 1.0f;
     CubeMapRenderTechnique cubemap_;
+    EquirectTechnique equirect_;
     LambertianTechnique lambertian_;
     ReflectiveTechnique reflective_;
     ParticleRenderTechnique particles_;

@@ -1,6 +1,7 @@
 #include <exd/render/systems/render_system.hpp>
 #include <exd/render/components/camera_component.hpp>
 #include <exd/render/components/cubemap.hpp>
+#include <exd/render/components/equirect_sky.hpp>
 #include <exd/render/components/disabled.hpp>
 #include <exd/render/components/environment.hpp>
 #include <exd/render/components/particle_cloud.hpp>
@@ -45,6 +46,22 @@ void RenderSystem::render_cubemap_pass(exd::ecs::Registry& registry,
         cubemap_.draw(data);
     }
     cubemap_.unbind();
+}
+
+void RenderSystem::render_equirect_pass(exd::ecs::Registry& registry,
+                                         const math::Mat4& view, const math::Mat4& proj) {
+    auto v = registry.view<EquirectSkyComponent, RenderableComponent, RenderTechnique_Equirect>();
+    if (v.begin() == v.end()) return;
+
+    equirect_.bind(view, proj);
+    for (auto e : v) {
+        if (registry.has<Disabled>(e)) continue;
+        auto& esc = registry.get<EquirectSkyComponent>(e);
+        auto& r = registry.get<RenderableComponent>(e);
+        if (r.mesh == 0) continue;
+        equirect_.draw(r.mesh, esc.gl_texture);
+    }
+    equirect_.unbind();
 }
 
 void RenderSystem::render_opaque_pass(exd::ecs::Registry& registry,
@@ -201,6 +218,7 @@ void RenderSystem::render_highlight_pass(exd::ecs::Registry& registry,
 
 void RenderSystem::update(exd::ecs::Registry& registry, double /*dt*/) {
     glEnable(GL_DEPTH_TEST);
+    glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);  // blend across cubemap face edges (no skybox seams)
     glClearColor(clear_r_, clear_g_, clear_b_, clear_a_);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -224,6 +242,7 @@ void RenderSystem::update(exd::ecs::Registry& registry, double /*dt*/) {
                                                    cam->near_plane, cam->far_plane);
 
     render_cubemap_pass(registry, view_mat, proj_mat);
+    render_equirect_pass(registry, view_mat, proj_mat);
     render_opaque_pass(registry, view_mat, proj_mat, cam_xform->position);
     render_reflective_pass(registry, view_mat, proj_mat, cam_xform->position);
     render_particle_pass(registry, view_mat, proj_mat);

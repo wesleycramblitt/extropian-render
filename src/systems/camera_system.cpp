@@ -23,6 +23,9 @@ void CameraSystem::update(exd::ecs::Registry& registry, double dt) {
     if (window_->input_mode != InputMode::FPS) return;
     if (!window_->keyboard_state) return;
 
+    // Clamp dt to avoid huge jumps on frame spikes / first frame
+    if (dt > 0.1) dt = 0.016;
+
     for (auto e : registry.view<CameraController, CameraComponent, Transform>()) {
         auto& cc = registry.get<CameraController>(e);
         float dx = -window_->mouse_rel_x;
@@ -30,7 +33,7 @@ void CameraSystem::update(exd::ecs::Registry& registry, double dt) {
 
         cc.yaw   += dx * cc.mouse_sensitivity;
         cc.pitch += dy * cc.mouse_sensitivity;
-        cc.pitch = std::clamp(cc.pitch, -1.55f, 1.55f);
+        cc.pitch = std::clamp(cc.pitch, -1.40f, 1.40f);   // ±80° — safe margin from pole
         if (cc.yaw > 6.283f)  cc.yaw -= 6.283f;
         if (cc.yaw < -6.283f) cc.yaw += 6.283f;
 
@@ -42,23 +45,28 @@ void CameraSystem::update(exd::ecs::Registry& registry, double dt) {
         xform.rotation = (q_pitch * q_yaw).norm();
 
         Vec3f cam_fwd = (xform.rotation * Vec3f{0.0f, 0.0f, -1.0f}).normalized();
-        Vec3f front = (cam_fwd - world_up * cam_fwd.dot(world_up)).normalized();
-        float s = cc.move_speed * dt *
-            (window_->keyboard_state[SDL_SCANCODE_LSHIFT] ? cc.sprint_mult : 1.0f);
-        Vec3f move{0.0f, 0.0f, 0.0f};
-        auto& ks = window_->keyboard_state;
-        if (ks[SDL_SCANCODE_W]) move = move + front * s;
-        if (ks[SDL_SCANCODE_S]) move = move - front * s;
-        if (ks[SDL_SCANCODE_A]) move = move - local_right * s;
-        if (ks[SDL_SCANCODE_D]) move = move + local_right * s;
-        if (ks[SDL_SCANCODE_Q]) move = move - world_up * s;
-        if (ks[SDL_SCANCODE_E]) move = move + world_up * s;
-        xform.position = xform.position + move;
+        Vec3f front = (cam_fwd - world_up * cam_fwd.dot(world_up));
+        float front_len = front.length();
+        front = (front_len > 0.001f) ? front / front_len : cam_fwd;  // safe from pole
+
+        // Movement: skip if locked (free-look only mode)
+        if (!cc.lock_movement) {
+            float s = cc.move_speed * dt *
+                (window_->keyboard_state[SDL_SCANCODE_LSHIFT] ? cc.sprint_mult : 1.0f);
+            Vec3f move{0.0f, 0.0f, 0.0f};
+            auto& ks = window_->keyboard_state;
+            if (ks[SDL_SCANCODE_W]) move = move + front * s;
+            if (ks[SDL_SCANCODE_S]) move = move - front * s;
+            if (ks[SDL_SCANCODE_A]) move = move - local_right * s;
+            if (ks[SDL_SCANCODE_D]) move = move + local_right * s;
+            if (ks[SDL_SCANCODE_Q]) move = move - world_up * s;
+            if (ks[SDL_SCANCODE_E]) move = move + world_up * s;
+            xform.position = xform.position + move;
+        }
 
         break;
     }
-    window_->mouse_rel_x = 0;
-    window_->mouse_rel_y = 0;
+    window_->reset_mouse_delta();  // clears both public fields AND event_state accumulator
 #else
     (void)registry; (void)dt;
 #endif

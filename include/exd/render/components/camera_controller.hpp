@@ -8,6 +8,7 @@ struct CameraController {
     float mouse_sensitivity = 0.002f;
     float yaw = 0.0f;
     float pitch = 0.0f;
+    bool  lock_movement = false;  // when true: look only, no WASD flight
 };
 
 } // namespace exd::render

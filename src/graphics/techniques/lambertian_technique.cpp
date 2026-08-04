@@ -43,7 +43,7 @@ void LambertianTechnique::bind(const math::Mat4& view, const math::Mat4& proj,
 }
 
 void LambertianTechnique::setBaseColor(const math::Quat& color) {
-    glUniform4f(u_baseColor_, color.w, color.x, color.y, color.z);
+    glUniform4f(u_baseColor_, color.x, color.y, color.z, color.w);
 }
 
 void LambertianTechnique::draw(uint32_t mesh_handle, const math::Mat4& model) {

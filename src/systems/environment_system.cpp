@@ -1,6 +1,7 @@
 #include <exd/render/systems/environment_system.hpp>
 #include <exd/render/components/environment.hpp>
 #include <exd/render/components/cubemap.hpp>
+#include <exd/render/components/equirect_sky.hpp>
 #include <exd/render/components/material.hpp>
 #include <exd/render/components/mesh_asset.hpp>
 #include <exd/render/components/render_technique_tags.hpp>
@@ -57,9 +58,16 @@ void EnvironmentSystem::load_impl(const std::string& full_dir, const std::string
     env_c.name = name;
     auto& spawned = env_c.spawned_entities;
 
-    // ── skybox ────────────────────────────────────────────────
-    std::string skybox_path = full_dir + "/" + cfg.value("skybox", "skybox/cross.png");
-    {
+    // ── sky ──────────────────────────────────────────────────
+    if (cfg.contains("skydome")) {
+        std::string skydome_path = full_dir + "/" + cfg["skydome"].get<std::string>();
+        auto sky_e = registry_.create(name + "_sky");
+        spawned.push_back(sky_e);
+        auto& esc = registry_.emplace<EquirectSkyComponent>(sky_e);
+        esc.path = skydome_path;
+        registry_.emplace<RenderTechnique_Equirect>(sky_e);
+    } else {
+        std::string skybox_path = full_dir + "/" + cfg.value("skybox", "skybox/cross.png");
         auto sky_e = registry_.create(name + "_sky");
         spawned.push_back(sky_e);
         auto& cm = registry_.emplace<CubeMapComponent>(sky_e);

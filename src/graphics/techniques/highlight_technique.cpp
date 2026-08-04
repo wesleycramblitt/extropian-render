@@ -17,13 +17,13 @@ void HighlightTechnique::bind(const math::Mat4& view, const math::Mat4& proj,
     GLint cloc = glGetUniformLocation(program_, "u_color");
     GL_CALL(glUniform4f(cloc, color.x, color.y, color.z, 1.0f));
 
-    // Wireframe overlay
+    // Wireframe overlay (desktop only — glPolygonMode unavailable in WebGL 2.0)
+#ifndef __EMSCRIPTEN__
     GL_CALL(glPolygonMode(GL_FRONT_AND_BACK, GL_LINE));
     GL_CALL(glLineWidth(2.0f));
-
-    // Push depth slightly toward camera so wireframe sits on top
     GL_CALL(glEnable(GL_POLYGON_OFFSET_LINE));
     GL_CALL(glPolygonOffset(-1.0f, -1.0f));
+#endif
 
     // No depth writes — highlight is overlay only
     GL_CALL(glDepthMask(GL_FALSE));
@@ -44,9 +44,11 @@ void HighlightTechnique::draw(uint32_t mesh_handle, const math::Mat4& model) {
 
 void HighlightTechnique::unbind() {
     GL_CALL(glDepthMask(GL_TRUE));
+#ifndef __EMSCRIPTEN__
     GL_CALL(glDisable(GL_POLYGON_OFFSET_LINE));
     GL_CALL(glLineWidth(1.0f));
     GL_CALL(glPolygonMode(GL_FRONT_AND_BACK, GL_FILL));
+#endif
     GL_CALL(glUseProgram(0));
 }
 

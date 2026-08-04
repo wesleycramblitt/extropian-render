@@ -25,17 +25,19 @@ void CubeMapRenderTechnique::draw(const Renderable& renderable) {
     math::Mat4 identity = math::Mat4::identity();
     GL_CALL(glUniformMatrix4fv(u_model, 1, GL_FALSE, identity.m));
 
-    GL_CALL(glUniformMatrix4fv(u_view, 1, GL_FALSE, std::get<math::Mat4>(renderable.uniforms.at("u_view")).m));
+    // Strip translation from view matrix so skybox appears infinitely distant.
+    math::Mat4 view_no_trans = std::get<math::Mat4>(renderable.uniforms.at("u_view"));
+    view_no_trans.m[12] = 0.0f;  // column 3, row 0 (X translation)
+    view_no_trans.m[13] = 0.0f;  // column 3, row 1 (Y translation)
+    view_no_trans.m[14] = 0.0f;  // column 3, row 2 (Z translation)
+
+    GL_CALL(glUniformMatrix4fv(u_view, 1, GL_FALSE, view_no_trans.m));
     GL_CALL(glUniformMatrix4fv(u_proj, 1, GL_FALSE, std::get<math::Mat4>(renderable.uniforms.at("u_proj")).m));
 
     if (renderable.mesh_handle == 0 || renderable.texture_handle == 0) {
-        std::printf("[cubemap draw] SKIP: mesh_handle=%u texture_handle=%u\n",
-                    renderable.mesh_handle, renderable.texture_handle);
+        // SKIP: mesh_handle or texture_handle is 0
         return;
     }
-
-    std::printf("[cubemap draw] Drawing: mesh=%u tex=%u program=%u\n",
-                renderable.mesh_handle, renderable.texture_handle, cubemap_program_);
 
     // Bind cubemap directly
     GL_CALL(glActiveTexture(GL_TEXTURE0));
