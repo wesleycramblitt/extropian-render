@@ -14,6 +14,10 @@ void LambertianTechnique::bind(const math::Mat4& view, const math::Mat4& proj,
         "shaders/opengl/lambertian/lambertian.frag");
     GL_CALL(glUseProgram(program_));
 
+    // Disable face culling — the cubemap/equirect passes above us may
+    // have re-enabled it. UI panels (extrusion caps) need both sides visible.
+    GL_CALL(glDisable(GL_CULL_FACE));
+
     u_view_       = glGetUniformLocation(program_, "u_view");
     u_proj_       = glGetUniformLocation(program_, "u_proj");
     u_model_      = glGetUniformLocation(program_, "u_model");
@@ -56,6 +60,9 @@ void LambertianTechnique::draw(uint32_t mesh_handle, const math::Mat4& model) {
         GL_CALL(glDrawArrays(mesh->topology, 0, mesh->vertex_count));
 }
 
-void LambertianTechnique::unbind() { GL_CALL(glUseProgram(0)); }
+void LambertianTechnique::unbind() {
+    GL_CALL(glEnable(GL_CULL_FACE));
+    GL_CALL(glUseProgram(0));
+}
 
 } // namespace exd::render
